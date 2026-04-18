@@ -1,5 +1,5 @@
 import Layout from '../components/Layout'
-import { T } from '../lib/tokens'
+import { T } from '../styles/tokens'
 import { useAuth } from '../lib/auth'
 
 export default function Dashboard() {

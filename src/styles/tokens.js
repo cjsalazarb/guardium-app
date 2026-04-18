@@ -1,4 +1,13 @@
 export const T = {
+  // === Spec Asana ===
+  PRIMARY:      '#1B3A6B',
+  ACCENT:       '#F59E0B',
+  BG:           '#F0F4F8',
+  CARD_RADIUS:  '20px',
+  FONT_PRIMARY: "'Nunito', sans-serif",
+  FONT_BODY:    "'Inter', sans-serif",
+
+  // === Marca GUARDIUM (rojo/negro) ===
   RED:        '#C0202A',
   RED_DARK:   '#8B1219',
   RED_LIGHT:  '#D94550',
@@ -9,7 +18,6 @@ export const T = {
   STEEL:      '#6B6B6B',
   SILVER:     '#A8A8A8',
   BORDER:     '#E5E5E5',
-  BG:         '#F5F5F5',
   BG_DARK:    '#EFEFEF',
   WHITE:      '#FFFFFF',
   TEXT:       '#1A1A1A',
@@ -26,5 +34,4 @@ export const T = {
   SHADOW:     '0 2px 16px rgba(0,0,0,0.07)',
   SHADOW_LG:  '0 6px 32px rgba(0,0,0,0.13)',
   FONT_DISPLAY: "'Bebas Neue', cursive",
-  FONT_BODY:    "'Nunito', sans-serif",
 }

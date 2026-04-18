@@ -1,5 +1,5 @@
 import Sidebar from './Sidebar'
-import { T } from '../lib/tokens'
+import { T } from '../styles/tokens'
 
 export default function Layout({ children }) {
   return (

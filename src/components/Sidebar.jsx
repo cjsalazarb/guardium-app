@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { T } from '../lib/tokens'
+import { T } from '../styles/tokens'
 import { useAuth } from '../lib/auth'
 
 const modules = [
