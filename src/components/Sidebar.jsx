@@ -2,26 +2,27 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { T } from '../styles/tokens'
 import { useAuth } from '../lib/auth'
-import { NotificationBell } from '../modules/notificaciones/NotificacionesPanel'
 import NotificacionesPanel from '../modules/notificaciones/NotificacionesPanel'
 
-const modules = [
-  { icon: '\u{1F3E0}', label: 'Dashboard', path: '/dashboard' },
-  { icon: '\u{1F4CB}', label: 'Contratos', path: '/contratos' },
-  { icon: '\u{1F46E}', label: 'Guardias', path: '/guardias' },
-  { icon: '\u23F0', label: 'Turnos', path: '/turnos' },
-  { icon: '\u{1F465}', label: 'Visitantes', path: '/visitantes' },
-  { icon: '\u{1F697}', label: 'Vehiculos', path: '/vehiculos' },
-  { icon: '\u{1F4E6}', label: 'Paquetes', path: '/paquetes' },
-  { icon: '\u{1F6A8}', label: 'Incidentes', path: '/incidentes' },
-  { icon: '\u{1F4D3}', label: 'Novedades', path: '/novedades' },
-  { icon: '\u{1F527}', label: 'Contratistas', path: '/contratistas' },
-  { icon: '\u{1F4BC}', label: 'Propuestas', path: '/propuestas' },
-  { icon: '\u{1F4B3}', label: 'Facturacion', path: '/facturacion' },
+const menuItems = [
+  { icon: '🏠', label: 'Dashboard',      path: '/dashboard' },
+  { icon: '📋', label: 'Contratos',      path: '/contratos' },
+  { icon: '👮', label: 'Guardias',       path: '/guardias' },
+  { icon: '⏰', label: 'Turnos',         path: '/turnos' },
+  { icon: '💼', label: 'Propuestas',     path: '/propuestas' },
+  { icon: '💳', label: 'Facturación',    path: '/facturacion' },
+  { icon: '🚨', label: 'Incidentes',     path: '/incidentes' },
+  { icon: '📓', label: 'Novedades',      path: '/novedades' },
+  { icon: '👥', label: 'Visitantes',     path: '/visitantes' },
+  { icon: '🔧', label: 'Contratistas',   path: '/contratistas' },
+  { icon: '🚗', label: 'Vehículos',      path: '/vehiculos' },
+  { icon: '📦', label: 'Paquetes',       path: '/paquetes' },
 ]
 
 const bottomItems = [
-  { icon: '\u2699\uFE0F', label: 'Config', path: '/configuracion' },
+  { icon: '🔔', label: 'Notificaciones', action: 'notifications' },
+  { icon: '⚙️', label: 'Configuración',  path: '/configuracion' },
+  { icon: '🚪', label: 'Salir',          action: 'signout' },
 ]
 
 export default function Sidebar() {
@@ -30,50 +31,60 @@ export default function Sidebar() {
   const { signOut } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
 
-  const isActive = (path) => location.pathname.startsWith(path)
+  const isActive = (path) => path && location.pathname.startsWith(path)
 
-  const renderItem = (item) => {
+  const handleClick = (item) => {
+    if (item.action === 'signout') return signOut()
+    if (item.action === 'notifications') return setNotifOpen(true)
+    if (item.path) navigate(item.path)
+  }
+
+  const renderItem = (item, i) => {
     const active = isActive(item.path)
     return (
       <div
-        key={item.path}
-        onClick={() => navigate(item.path)}
-        title={item.label}
+        key={item.path || item.action || i}
+        onClick={() => handleClick(item)}
         style={{
-          width: 44,
-          height: 44,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: T.RADIUS_SM,
-          background: active ? T.RED : 'transparent',
-          color: active ? T.WHITE : T.STEEL,
-          fontSize: 22,
+          gap: 12,
+          padding: '10px 16px',
+          borderRadius: 10,
           cursor: 'pointer',
-          transition: 'all 0.2s',
-          marginBottom: 4,
+          width: '100%',
+          transition: 'all 0.18s',
+          background: active ? '#C0202A' : 'transparent',
+          boxSizing: 'border-box',
         }}
         onMouseEnter={(e) => {
           if (!active) {
-            e.currentTarget.style.background = T.BLACK_SOFT
-            e.currentTarget.style.color = '#ccc'
+            e.currentTarget.style.background = '#2C2C2C'
+            e.currentTarget.querySelector('.sidebar-label').style.color = '#FFFFFF'
           }
         }}
         onMouseLeave={(e) => {
           if (!active) {
             e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = T.STEEL
+            e.currentTarget.querySelector('.sidebar-label').style.color = '#A8A8A8'
           }
         }}
       >
-        {item.icon}
+        <span style={{ fontSize: 18, width: 28, flexShrink: 0, textAlign: 'center' }}>{item.icon}</span>
+        <span className="sidebar-label" style={{
+          fontFamily: "'Nunito', sans-serif",
+          fontSize: 13,
+          fontWeight: 700,
+          color: active ? '#FFFFFF' : '#A8A8A8',
+          whiteSpace: 'nowrap',
+        }}>{item.label}</span>
       </div>
     )
   }
 
   return (
     <div style={{
-      width: 68,
+      width: 220,
       position: 'fixed',
       left: 0,
       top: 0,
@@ -81,58 +92,42 @@ export default function Sidebar() {
       background: T.BLACK,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      paddingTop: 16,
       paddingBottom: 16,
       zIndex: 100,
+      overflowY: 'auto',
     }}>
-      {/* Logo */}
-      <div style={{ marginBottom: 24 }}>
-        <svg width="36" height="40" viewBox="0 0 36 40" fill="none">
+      {/* Logo + nombre */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '16px 16px 20px 16px',
+        borderBottom: '1px solid #2a2a2a',
+        marginBottom: 8,
+      }}>
+        <svg width="32" height="36" viewBox="0 0 36 40" fill="none">
           <path d="M18 0L36 8V20C36 31.05 27.72 37.08 18 40C8.28 37.08 0 31.05 0 20V8L18 0Z" fill={T.RED} />
           <path d="M18 4L32 10.5V20C32 29 25 34.5 18 37C11 34.5 4 29 4 20V10.5L18 4Z" fill={T.BLACK} />
           <text x="18" y="25" textAnchor="middle" fill={T.RED} fontFamily={T.FONT_DISPLAY} fontSize="14" fontWeight="bold">G</text>
         </svg>
+        <span style={{
+          fontFamily: "'Bebas Neue', cursive",
+          fontSize: 20,
+          color: 'white',
+          letterSpacing: '0.05em',
+        }}>GUARDIUM</span>
       </div>
 
       {/* Navigation modules */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        {modules.map(renderItem)}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 8px', gap: 2 }}>
+        {menuItems.map(renderItem)}
       </div>
 
       {/* Bottom items */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-        <div onClick={() => setNotifOpen(true)} title="Notificaciones" style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
-          <NotificationBell />
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '0 8px', gap: 2, borderTop: '1px solid #2a2a2a', paddingTop: 8 }}>
         {bottomItems.map(renderItem)}
-        <div
-          onClick={signOut}
-          title="Salir"
-          style={{
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: T.RADIUS_SM,
-            color: T.STEEL,
-            fontSize: 22,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = T.BLACK_SOFT
-            e.currentTarget.style.color = '#ccc'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = T.STEEL
-          }}
-        >
-          {'\u{1F6AA}'}
-        </div>
       </div>
+
       <NotificacionesPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   )
