@@ -5,12 +5,12 @@ import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
 const statusColors = {
-  borrador:        { bg: '#F1F5F9', color: '#94A3B8' },
-  enviada:         { bg: '#DBEAFE', color: '#3B82F6' },
-  en_negociacion:  { bg: '#FEF3C7', color: '#F59E0B' },
-  aceptada:        { bg: '#DCFCE7', color: '#22C55E' },
-  rechazada:       { bg: '#FEE2E2', color: '#EF4444' },
-  sin_respuesta:   { bg: '#FFEDD5', color: '#F97316' },
+  borrador:        { bg: T.MUTED_BG, color: T.MUTED },
+  enviada:         { bg: T.INFO_BG, color: T.INFO },
+  en_negociacion:  { bg: T.WARN_BG, color: T.WARN },
+  aceptada:        { bg: T.SUCCESS_BG, color: T.SUCCESS },
+  rechazada:       { bg: T.DANGER_BG, color: T.DANGER },
+  sin_respuesta:   { bg: T.ORANGE_BG, color: T.ORANGE },
 }
 
 const statusLabels = {
@@ -96,8 +96,8 @@ export default function PropuestasList() {
                   <td style={{ padding: '14px 16px' }}>
                     <span style={{
                       padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                      background: statusColors[p.status]?.bg || '#F1F5F9',
-                      color: statusColors[p.status]?.color || '#94A3B8',
+                      background: statusColors[p.status]?.bg || T.MUTED_BG,
+                      color: statusColors[p.status]?.color || T.MUTED,
                     }}>
                       {statusLabels[p.status] || p.status}
                     </span>

@@ -54,7 +54,7 @@ export default function Sidebar() {
           cursor: 'pointer',
           width: '100%',
           transition: 'all 0.18s',
-          background: active ? '#C0202A' : 'transparent',
+          background: active ? T.RED : 'transparent',
           boxSizing: 'border-box',
         }}
         onMouseEnter={(e) => {

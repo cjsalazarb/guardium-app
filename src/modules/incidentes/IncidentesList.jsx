@@ -5,10 +5,10 @@ import { T } from '../../styles/tokens'
 import { useAuth } from '../../lib/auth'
 
 const SEVERITY_COLORS = {
-  bajo: { bg: '#F1F5F9', color: '#94A3B8' },
-  medio: { bg: '#FEF3C7', color: '#F59E0B' },
-  alto: { bg: '#FFF7ED', color: '#F97316' },
-  critico: { bg: '#FEE2E2', color: '#EF4444' },
+  bajo: { bg: T.MUTED_BG, color: T.MUTED },
+  medio: { bg: T.WARN_BG, color: T.WARN },
+  alto: { bg: T.ORANGE_BG, color: T.ORANGE },
+  critico: { bg: T.DANGER_BG, color: T.DANGER },
 }
 
 const STATUS_FLOW = { abierto: 'en_revision', en_revision: 'cerrado' }

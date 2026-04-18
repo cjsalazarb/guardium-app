@@ -5,11 +5,11 @@ import { T } from '../../styles/tokens'
 import { useAuth } from '../../lib/auth'
 
 function getPermitStatus(validUntil) {
-  if (!validUntil) return { label: 'Sin fecha', bg: '#E5E7EB', color: T.STEEL }
+  if (!validUntil) return { label: 'Sin fecha', bg: T.MUTED_BG, color: T.STEEL }
   const now = new Date()
   const expiry = new Date(validUntil)
   const diffDays = (expiry - now) / (1000 * 60 * 60 * 24)
-  if (diffDays < 0) return { label: 'VENCIDO', bg: '#FEE2E2', color: '#EF4444' }
+  if (diffDays < 0) return { label: 'VENCIDO', bg: T.DANGER_BG, color: T.DANGER }
   if (diffDays < 7) return { label: 'POR VENCER', bg: T.WARN_BG, color: T.WARN }
   return { label: 'VIGENTE', bg: T.SUCCESS_BG, color: T.SUCCESS }
 }
@@ -170,7 +170,7 @@ export default function ContratistasList() {
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         padding: '4px 12px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                        background: inside ? T.SUCCESS_BG : '#E5E7EB', color: inside ? T.SUCCESS : T.STEEL,
+                        background: inside ? T.SUCCESS_BG : T.MUTED_BG, color: inside ? T.SUCCESS : T.STEEL,
                       }}>
                         {inside ? 'DENTRO' : 'SALIO'}
                       </span>

@@ -7,7 +7,7 @@ import { T } from '../../styles/tokens'
 const statusColors = {
   activo: { bg: T.SUCCESS_BG, color: T.SUCCESS },
   suspendido: { bg: T.WARN_BG, color: T.WARN },
-  terminado: { bg: '#E5E7EB', color: T.STEEL },
+  terminado: { bg: T.MUTED_BG, color: T.STEEL },
 }
 
 export default function ContratoDetail() {

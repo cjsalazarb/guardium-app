@@ -265,8 +265,8 @@ export default function PropuestaForm() {
               onClick={() => handleChange('cell_enabled', !form.cell_enabled)}
               style={{
                 padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                background: form.cell_enabled ? '#DCFCE7' : '#F1F5F9',
-                color: form.cell_enabled ? '#22C55E' : '#94A3B8',
+                background: form.cell_enabled ? T.SUCCESS_BG : T.MUTED_BG,
+                color: form.cell_enabled ? T.SUCCESS : T.MUTED,
               }}
             >
               {form.cell_enabled ? 'ON' : 'OFF'}
@@ -296,8 +296,8 @@ export default function PropuestaForm() {
               onClick={() => handleChange('tablet_enabled', !form.tablet_enabled)}
               style={{
                 padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-                background: form.tablet_enabled ? '#DCFCE7' : '#F1F5F9',
-                color: form.tablet_enabled ? '#22C55E' : '#94A3B8',
+                background: form.tablet_enabled ? T.SUCCESS_BG : T.MUTED_BG,
+                color: form.tablet_enabled ? T.SUCCESS : T.MUTED,
               }}
             >
               {form.tablet_enabled ? 'ON' : 'OFF'}
@@ -369,7 +369,7 @@ export default function PropuestaForm() {
                 <label style={labelStyle}>Mensual</label>
                 <input style={readOnlyStyle} value={`Bs. ${fmt((Number(item.global_price) || 0) / 12)}`} readOnly />
               </div>
-              <button type="button" onClick={() => removeImplemento(idx)} style={{ ...smallBtnStyle, color: '#EF4444', borderColor: '#EF4444', marginBottom: 2 }}>X</button>
+              <button type="button" onClick={() => removeImplemento(idx)} style={{ ...smallBtnStyle, color: T.DANGER, borderColor: T.DANGER, marginBottom: 2 }}>X</button>
             </div>
           ))}
           <button type="button" onClick={addImplemento} style={{ ...smallBtnStyle, background: T.PRIMARY, color: T.WHITE, border: 'none', marginTop: 4 }}>+ Agregar implemento</button>
@@ -399,7 +399,7 @@ export default function PropuestaForm() {
                   <option value="unico">Unico</option>
                 </select>
               </div>
-              <button type="button" onClick={() => removeOtro(idx)} style={{ ...smallBtnStyle, color: '#EF4444', borderColor: '#EF4444', marginBottom: 2 }}>X</button>
+              <button type="button" onClick={() => removeOtro(idx)} style={{ ...smallBtnStyle, color: T.DANGER, borderColor: T.DANGER, marginBottom: 2 }}>X</button>
             </div>
           ))}
           <button type="button" onClick={addOtro} style={{ ...smallBtnStyle, background: T.PRIMARY, color: T.WHITE, border: 'none', marginTop: 4 }}>+ Agregar otro costo</button>

@@ -3,7 +3,7 @@ import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
-const statusColors = { programado: '#94A3B8', activo: '#22C55E', completado: '#3B82F6', ausente: '#F59E0B' }
+const statusColors = { programado: T.MUTED, activo: T.SUCCESS, completado: T.INFO, ausente: T.WARN }
 
 function getWeekDays(offset = 0) {
   const now = new Date()

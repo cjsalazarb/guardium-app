@@ -68,7 +68,7 @@ export default function GuardiasList() {
                 </div>
                 <span style={{
                   padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600,
-                  background: g.active ? T.SUCCESS_BG : '#E5E7EB', color: g.active ? T.SUCCESS : T.STEEL,
+                  background: g.active ? T.SUCCESS_BG : T.MUTED_BG, color: g.active ? T.SUCCESS : T.STEEL,
                 }}>
                   {g.active ? 'Activo' : 'Inactivo'}
                 </span>

@@ -155,7 +155,7 @@ export default function VisitantesList() {
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         padding: '4px 12px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                        background: inside ? T.SUCCESS_BG : '#E5E7EB', color: inside ? T.SUCCESS : T.STEEL,
+                        background: inside ? T.SUCCESS_BG : T.MUTED_BG, color: inside ? T.SUCCESS : T.STEEL,
                       }}>
                         {inside ? 'DENTRO' : 'SALIO'}
                       </span>

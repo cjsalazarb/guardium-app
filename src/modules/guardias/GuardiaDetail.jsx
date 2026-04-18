@@ -60,7 +60,7 @@ export default function GuardiaDetail() {
           </div>
           <span style={{
             marginLeft: 'auto', padding: '4px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
-            background: guard.active ? T.SUCCESS_BG : '#E5E7EB', color: guard.active ? T.SUCCESS : T.STEEL,
+            background: guard.active ? T.SUCCESS_BG : T.MUTED_BG, color: guard.active ? T.SUCCESS : T.STEEL,
           }}>{guard.active ? 'Activo' : 'Inactivo'}</span>
         </div>
       </div>

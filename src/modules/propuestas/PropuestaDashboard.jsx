@@ -9,12 +9,12 @@ import {
 } from 'recharts'
 
 const STATUS_COLORS = {
-  borrador: '#94A3B8',
-  enviada: '#3B82F6',
-  en_negociacion: '#F59E0B',
-  aceptada: '#22C55E',
-  rechazada: '#EF4444',
-  sin_respuesta: '#F97316',
+  borrador: T.MUTED,
+  enviada: T.INFO,
+  en_negociacion: T.WARN,
+  aceptada: T.SUCCESS,
+  rechazada: T.DANGER,
+  sin_respuesta: T.ORANGE,
 }
 
 const STATUS_LABELS = {
@@ -72,7 +72,7 @@ export default function PropuestaDashboard() {
     const counts = {}
     proposals.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1 })
     return Object.entries(counts).map(([status, count]) => ({
-      name: STATUS_LABELS[status] || status, value: count, color: STATUS_COLORS[status] || '#94A3B8',
+      name: STATUS_LABELS[status] || status, value: count, color: STATUS_COLORS[status] || T.MUTED,
     }))
   }, [proposals])
 
@@ -141,26 +141,26 @@ export default function PropuestaDashboard() {
 
       {/* ==================== KPIs ==================== */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={kpiCard('#3B82F6')}>
+        <div style={kpiCard(T.INFO)}>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, fontWeight: 600, marginBottom: 4 }}>ENVIADAS</div>
           <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: T.TEXT }}>{kpis.sentCount}</div>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Valor total: Bs. {fmt(kpis.totalValue)}</div>
         </div>
-        <div style={kpiCard('#22C55E')}>
+        <div style={kpiCard(T.SUCCESS)}>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, fontWeight: 600, marginBottom: 4 }}>ACEPTADAS</div>
           <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: T.TEXT }}>{kpis.acceptedCount}</div>
-          <div style={{ fontSize: 12, color: '#22C55E', fontFamily: T.FONT_BODY, fontWeight: 600 }}>Conversion: {kpis.conversionPct}%</div>
+          <div style={{ fontSize: 12, color: T.SUCCESS, fontFamily: T.FONT_BODY, fontWeight: 600 }}>Conversion: {kpis.conversionPct}%</div>
         </div>
-        <div style={kpiCard('#EF4444')}>
+        <div style={kpiCard(T.DANGER)}>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, fontWeight: 600, marginBottom: 4 }}>RECHAZADAS</div>
           <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: T.TEXT }}>{kpis.rejectedCount}</div>
-          <div style={{ fontSize: 12, color: '#EF4444', fontFamily: T.FONT_BODY, fontWeight: 600 }}>{kpis.rejectedPct}%</div>
+          <div style={{ fontSize: 12, color: T.DANGER, fontFamily: T.FONT_BODY, fontWeight: 600 }}>{kpis.rejectedPct}%</div>
         </div>
-        <div style={kpiCard('#F97316')}>
+        <div style={kpiCard(T.ORANGE)}>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, fontWeight: 600, marginBottom: 4 }}>SIN RESPUESTA &gt;7d</div>
-          <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: kpis.noResponseCount > 0 ? '#F97316' : T.TEXT }}>{kpis.noResponseCount}</div>
+          <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: kpis.noResponseCount > 0 ? T.ORANGE : T.TEXT }}>{kpis.noResponseCount}</div>
         </div>
-        <div style={kpiCard('#F59E0B')}>
+        <div style={kpiCard(T.WARN)}>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, fontWeight: 600, marginBottom: 4 }}>EN NEGOCIACION</div>
           <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: T.TEXT }}>{kpis.inNegCount}</div>
           <div style={{ fontSize: 12, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Potencial: Bs. {fmt(kpis.inNegValue)}</div>
@@ -203,8 +203,8 @@ export default function PropuestaDashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 11, fontFamily: T.FONT_BODY }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="enviadas" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="aceptadas" fill="#22C55E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="enviadas" fill={T.INFO} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="aceptadas" fill={T.SUCCESS} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -250,8 +250,8 @@ export default function PropuestaDashboard() {
                 const isNoResponse = ['enviada', 'sin_respuesta'].includes(p.status) && days > 7
                 const isRejectedRecent = p.status === 'rechazada' && days <= 7
                 let rowBg = 'transparent'
-                if (isNoResponse) rowBg = '#FFFBEB'
-                if (isRejectedRecent) rowBg = '#FEF2F2'
+                if (isNoResponse) rowBg = T.WARN_BG
+                if (isRejectedRecent) rowBg = T.DANGER_BG
 
                 return (
                   <tr
@@ -267,15 +267,15 @@ export default function PropuestaDashboard() {
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                        background: `${STATUS_COLORS[p.status] || '#94A3B8'}20`,
-                        color: STATUS_COLORS[p.status] || '#94A3B8',
+                        background: `${STATUS_COLORS[p.status] || T.MUTED}20`,
+                        color: STATUS_COLORS[p.status] || T.MUTED,
                       }}>
                         {STATUS_LABELS[p.status] || p.status}
                       </span>
                     </td>
                     <td style={{
                       padding: '12px 16px', fontSize: 13,
-                      color: isNoResponse ? '#F97316' : isRejectedRecent ? '#EF4444' : T.TEXT_MUTED,
+                      color: isNoResponse ? T.ORANGE : isRejectedRecent ? T.DANGER : T.TEXT_MUTED,
                       fontWeight: isNoResponse || isRejectedRecent ? 700 : 400,
                     }}>
                       {days !== null ? `${days}d` : '—'}

@@ -7,7 +7,7 @@ import { T } from '../../styles/tokens'
 const STATUS_CHIP = {
   pendiente: { bg: T.WARN_BG, color: T.WARN, label: 'Pendiente' },
   pagado:    { bg: T.SUCCESS_BG, color: T.SUCCESS, label: 'Pagado' },
-  vencido:   { bg: '#FEE2E2', color: '#EF4444', label: 'Vencido' },
+  vencido:   { bg: T.DANGER_BG, color: T.DANGER, label: 'Vencido' },
 }
 
 const MONTHS = [
@@ -147,7 +147,7 @@ export default function FacturacionList() {
           <div style={{ fontSize: 13, fontFamily: T.FONT_BODY, color: T.TEXT_MUTED }}>Monto pendiente</div>
         </div>
         <div style={{ background: T.WHITE, borderRadius: T.CARD_RADIUS, padding: 20, boxShadow: T.SHADOW }}>
-          <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: '#EF4444', marginBottom: 4 }}>{totalOverdue}</div>
+          <div style={{ fontSize: 28, fontFamily: T.FONT_DISPLAY, color: T.DANGER, marginBottom: 4 }}>{totalOverdue}</div>
           <div style={{ fontSize: 13, fontFamily: T.FONT_BODY, color: T.TEXT_MUTED }}>Facturas vencidas</div>
         </div>
         <div style={{ background: T.WHITE, borderRadius: T.CARD_RADIUS, padding: 20, boxShadow: T.SHADOW }}>
@@ -158,9 +158,9 @@ export default function FacturacionList() {
 
       {/* Overdue Alert */}
       {totalOverdue > 0 && (
-        <div style={{ background: '#FEE2E2', borderRadius: T.RADIUS_SM, padding: '12px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, fontFamily: T.FONT_BODY }}>
+        <div style={{ background: T.DANGER_BG, borderRadius: T.RADIUS_SM, padding: '12px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, fontFamily: T.FONT_BODY }}>
           <span style={{ fontSize: 18 }}>{'\u26A0\uFE0F'}</span>
-          <span style={{ color: '#EF4444', fontSize: 14, fontWeight: 600 }}>
+          <span style={{ color: T.DANGER, fontSize: 14, fontWeight: 600 }}>
             Hay {totalOverdue} factura{totalOverdue > 1 ? 's' : ''} vencida{totalOverdue > 1 ? 's' : ''} que requieren atencion.
           </span>
         </div>
@@ -290,7 +290,7 @@ export default function FacturacionList() {
                     <td style={{ ...tdStyle, fontWeight: 600 }}>Bs. {Number(inv.amount || 0).toLocaleString('es-BO', { minimumFractionDigits: 2 })}</td>
                     <td style={tdStyle}>
                       {inv.due_date ? new Date(inv.due_date).toLocaleDateString('es-BO') : '—'}
-                      {overdue && <span style={{ display: 'block', fontSize: 11, color: '#EF4444', fontWeight: 600 }}>{days} dias vencido</span>}
+                      {overdue && <span style={{ display: 'block', fontSize: 11, color: T.DANGER, fontWeight: 600 }}>{days} dias vencido</span>}
                     </td>
                     <td style={tdStyle}><span style={chipStyle(displayStatus)}>{STATUS_CHIP[displayStatus]?.label || displayStatus}</span></td>
                     <td style={tdStyle}>{inv.paid_at ? new Date(inv.paid_at).toLocaleDateString('es-BO') : '—'}</td>

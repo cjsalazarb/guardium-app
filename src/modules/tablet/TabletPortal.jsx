@@ -117,7 +117,7 @@ export default function TabletPortal() {
   }
 
   const isEntrada = !lastCheckin || lastCheckin.type === 'salida'
-  const btnColor = isEntrada ? '#22C55E' : T.RED
+  const btnColor = isEntrada ? T.SUCCESS : T.RED
 
   const quickActions = [
     { icon: '📓', label: 'Novedad', key: 'novedad' },
@@ -164,15 +164,15 @@ export default function TabletPortal() {
 
   if (confirmMsg) {
     return (
-      <div style={{ minHeight: '100vh', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: T.BLACK, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
         <div style={{ fontSize: 80, marginBottom: 16 }}>✓</div>
-        <div style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: '#22C55E', letterSpacing: '0.05em' }}>{confirmMsg}</div>
+        <div style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: T.SUCCESS, letterSpacing: '0.05em' }}>{confirmMsg}</div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#111', color: T.WHITE, fontFamily: T.FONT_BODY, padding: 24 }}>
+    <div style={{ minHeight: '100vh', background: T.BLACK, color: T.WHITE, fontFamily: T.FONT_BODY, padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 700 }}>Hola, {guard?.full_name || user?.full_name || 'Guardia'}</div>
