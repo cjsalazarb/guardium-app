@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -17,6 +18,7 @@ export default function ContratoDetail() {
   const [stats, setStats] = useState({ guards: 0, shifts: 0, incidents: 0 })
   const [tab, setTab] = useState('guardias')
   const [tabData, setTabData] = useState([])
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadContract()
@@ -26,7 +28,8 @@ export default function ContratoDetail() {
   useEffect(() => { loadTabData() }, [tab, id])
 
   async function loadContract() {
-    const { data } = await supabase.from('contracts').select('*').eq('id', id).single()
+    const { data, error: dbErr } = await supabase.from('contracts').select('*').eq('id', id).single()
+    if (dbErr) { setError('Error al cargar contrato. Intente de nuevo.'); return }
     setContract(data)
   }
 
@@ -36,24 +39,24 @@ export default function ContratoDetail() {
       supabase.from('shifts').select('id', { count: 'exact', head: true }).eq('contract_id', id).in('status', ['programado', 'activo']),
       supabase.from('incident_reports').select('id', { count: 'exact', head: true }).eq('contract_id', id).eq('status', 'abierto'),
     ])
+    if (g.error || s.error || i.error) { setError('Error al cargar estadisticas. Intente de nuevo.'); return }
     setStats({ guards: g.count || 0, shifts: s.count || 0, incidents: i.count || 0 })
   }
 
   async function loadTabData() {
     let data = []
+    let r
     if (tab === 'guardias') {
-      const r = await supabase.from('guards').select('*').eq('contract_id', id).order('full_name')
-      data = r.data || []
+      r = await supabase.from('guards').select('*').eq('contract_id', id).order('full_name')
     } else if (tab === 'turnos') {
-      const r = await supabase.from('shifts').select('*, guard:guards(full_name)').eq('contract_id', id).order('start_time', { ascending: false }).limit(20)
-      data = r.data || []
+      r = await supabase.from('shifts').select('*, guard:guards(full_name)').eq('contract_id', id).order('start_time', { ascending: false }).limit(20)
     } else if (tab === 'incidentes') {
-      const r = await supabase.from('incident_reports').select('*, guard:guards(full_name)').eq('contract_id', id).order('created_at', { ascending: false }).limit(20)
-      data = r.data || []
+      r = await supabase.from('incident_reports').select('*, guard:guards(full_name)').eq('contract_id', id).order('created_at', { ascending: false }).limit(20)
     } else if (tab === 'facturacion') {
-      const r = await supabase.from('invoices').select('*').eq('contract_id', id).order('period_year', { ascending: false }).order('period_month', { ascending: false })
-      data = r.data || []
+      r = await supabase.from('invoices').select('*').eq('contract_id', id).order('period_year', { ascending: false }).order('period_month', { ascending: false })
     }
+    if (r?.error) { setError('Error al cargar datos. Intente de nuevo.'); return }
+    data = r?.data || []
     setTabData(data)
   }
 
@@ -117,6 +120,7 @@ export default function ContratoDetail() {
           )}
         </div>
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

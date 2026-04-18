@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import Layout from '../components/Layout'
+import Toast from '../components/Toast'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { T } from '../styles/tokens'
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [recentCheckins, setRecentCheckins] = useState([])
   const [criticalAlert, setCriticalAlert] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadAll()
@@ -33,6 +35,7 @@ export default function Dashboard() {
       supabase.from('incident_reports').select('id', { count: 'exact', head: true }).eq('status', 'abierto').eq('severity', 'critico'),
       supabase.from('invoices').select('amount').eq('status', 'pendiente'),
     ])
+    if (contracts.error || guards.error || incidents.error || invoices.error) { setError('Error al cargar datos. Intente de nuevo.'); return }
     const pendingAmount = (invoices.data || []).reduce((sum, i) => sum + Number(i.amount || 0), 0)
     const hasCritical = (criticals.count || 0) > 0
     setCriticalAlert(hasCritical)
@@ -182,6 +185,7 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

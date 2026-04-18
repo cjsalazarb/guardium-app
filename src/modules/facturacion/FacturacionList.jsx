@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import { T } from '../../styles/tokens'
@@ -37,6 +38,7 @@ export default function FacturacionList() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
 
   // Filters
   const [filterMonth, setFilterMonth] = useState('')
@@ -54,7 +56,8 @@ export default function FacturacionList() {
   useEffect(() => { loadInvoices() }, [filterMonth, filterYear, filterStatus, filterContract])
 
   async function loadContracts() {
-    const { data } = await supabase.from('contracts').select('id, client_name, monthly_amount').order('client_name')
+    const { data, error: dbErr } = await supabase.from('contracts').select('id, client_name, monthly_amount').order('client_name')
+    if (dbErr) { setError('Error al cargar contratos. Intente de nuevo.'); return }
     setContracts(data || [])
   }
 
@@ -64,7 +67,8 @@ export default function FacturacionList() {
     if (filterYear) q = q.eq('period_year', Number(filterYear))
     if (filterStatus) q = q.eq('status', filterStatus)
     if (filterContract) q = q.eq('contract_id', filterContract)
-    const { data } = await q
+    const { data, error: dbErr } = await q
+    if (dbErr) { setError('Error al cargar facturas. Intente de nuevo.'); setLoading(false); return }
     setInvoices(data || [])
     setLoading(false)
   }
@@ -82,7 +86,7 @@ export default function FacturacionList() {
     e.preventDefault()
     if (!form.contract_id || !form.amount || !form.due_date) return
     setSaving(true)
-    const { error } = await supabase.from('invoices').insert({
+    const { error: dbErr } = await supabase.from('invoices').insert({
       contract_id: form.contract_id,
       amount: Number(form.amount),
       period_month: Number(form.period_month),
@@ -91,16 +95,16 @@ export default function FacturacionList() {
       notes: form.notes || null,
       status: 'pendiente',
     })
-    if (!error) {
-      setShowForm(false)
-      setForm({ contract_id: '', amount: '', period_month: new Date().getMonth() + 1, period_year: new Date().getFullYear(), due_date: '', notes: '' })
-      loadInvoices()
-    }
+    if (dbErr) { setError('Error al crear factura. Intente de nuevo.'); setSaving(false); return }
+    setShowForm(false)
+    setForm({ contract_id: '', amount: '', period_month: new Date().getMonth() + 1, period_year: new Date().getFullYear(), due_date: '', notes: '' })
+    loadInvoices()
     setSaving(false)
   }
 
   async function markAsPaid(id) {
-    await supabase.from('invoices').update({ status: 'pagado', paid_at: new Date().toISOString() }).eq('id', id)
+    const { error: dbErr } = await supabase.from('invoices').update({ status: 'pagado', paid_at: new Date().toISOString() }).eq('id', id)
+    if (dbErr) { setError('Error al actualizar factura. Intente de nuevo.'); return }
     loadInvoices()
   }
 
@@ -315,6 +319,7 @@ export default function FacturacionList() {
           </table>
         )}
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

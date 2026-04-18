@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -13,6 +14,7 @@ const statusColors = {
 export default function ContratosList() {
   const [contracts, setContracts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -20,10 +22,11 @@ export default function ContratosList() {
   }, [])
 
   async function loadContracts() {
-    const { data } = await supabase
+    const { data, error: dbErr } = await supabase
       .from('contracts')
       .select('*, admin:users!contracts_admin_id_fkey(full_name)')
       .order('created_at', { ascending: false })
+    if (dbErr) { setError('Error al cargar contratos. Intente de nuevo.'); setLoading(false); return }
     setContracts(data || [])
     setLoading(false)
   }
@@ -98,6 +101,7 @@ export default function ContratosList() {
           </table>
         )}
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

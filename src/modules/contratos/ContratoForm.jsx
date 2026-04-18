@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -10,6 +11,8 @@ export default function ContratoForm() {
   const isEdit = Boolean(id)
   const [admins, setAdmins] = useState([])
   const [saving, setSaving] = useState(false)
+  const [loadingData, setLoadingData] = useState(false)
+  const [error, setError] = useState(null)
   const [form, setForm] = useState({
     client_name: '', address: '', start_date: '', end_date: '',
     monthly_amount: '', status: 'activo', admin_id: '',
@@ -18,6 +21,7 @@ export default function ContratoForm() {
   useEffect(() => {
     supabase.from('users').select('id, full_name').eq('role', 'admin').then(({ data }) => setAdmins(data || []))
     if (isEdit) {
+      setLoadingData(true)
       supabase.from('contracts').select('*').eq('id', id).single().then(({ data }) => {
         if (data) setForm({
           client_name: data.client_name || '', address: data.address || '',
@@ -25,6 +29,7 @@ export default function ContratoForm() {
           monthly_amount: data.monthly_amount || '', status: data.status || 'activo',
           admin_id: data.admin_id || '',
         })
+        setLoadingData(false)
       })
     }
   }, [id, isEdit])
@@ -42,9 +47,11 @@ export default function ContratoForm() {
       end_date: form.end_date || null,
     }
     if (isEdit) {
-      await supabase.from('contracts').update(payload).eq('id', id)
+      const { error: dbError } = await supabase.from('contracts').update(payload).eq('id', id)
+      if (dbError) { setError('No se pudo guardar. ' + dbError.message); setSaving(false); return }
     } else {
-      await supabase.from('contracts').insert(payload)
+      const { error: dbError } = await supabase.from('contracts').insert(payload)
+      if (dbError) { setError('No se pudo guardar. ' + dbError.message); setSaving(false); return }
     }
     setSaving(false)
     navigate('/contratos')
@@ -58,6 +65,8 @@ export default function ContratoForm() {
 
   const labelStyle = { display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }
 
+  if (isEdit && loadingData) return <Layout><div style={{padding:40,textAlign:'center',fontFamily:"'Nunito', sans-serif",color:'#6B6B6B'}}>Cargando...</div></Layout>
+
   return (
     <Layout>
       <h1 style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: T.TEXT, margin: '0 0 24px' }}>
@@ -65,6 +74,7 @@ export default function ContratoForm() {
       </h1>
       <div style={{ background: T.WHITE, borderRadius: T.CARD_RADIUS, boxShadow: T.SHADOW, padding: 32, maxWidth: 600 }}>
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={saving} style={{border:'none',padding:0,margin:0}}>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Cliente *</label>
             <input style={inputStyle} value={form.client_name} onChange={e => handleChange('client_name', e.target.value)} required />
@@ -116,8 +126,10 @@ export default function ContratoForm() {
               Cancelar
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -10,6 +11,8 @@ export default function GuardiaForm() {
   const isEdit = Boolean(id)
   const [contracts, setContracts] = useState([])
   const [saving, setSaving] = useState(false)
+  const [loadingData, setLoadingData] = useState(false)
+  const [error, setError] = useState(null)
   const [tempPassword, setTempPassword] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [form, setForm] = useState({
@@ -19,11 +22,13 @@ export default function GuardiaForm() {
   useEffect(() => {
     supabase.from('contracts').select('id, client_name').eq('status', 'activo').then(({ data }) => setContracts(data || []))
     if (isEdit) {
+      setLoadingData(true)
       supabase.from('guards').select('*').eq('id', id).single().then(({ data }) => {
         if (data) setForm({
           full_name: data.full_name || '', ci: data.ci || '', phone: data.phone || '',
           emergency_contact: data.emergency_contact || '', contract_id: data.contract_id || '', email: '',
         })
+        setLoadingData(false)
       })
     }
   }, [id, isEdit])
@@ -48,30 +53,33 @@ export default function GuardiaForm() {
       if (isEdit) {
         const payload = { full_name: form.full_name, ci: form.ci, phone: form.phone, emergency_contact: form.emergency_contact, contract_id: form.contract_id || null }
         if (photo_url) payload.photo_url = photo_url
-        await supabase.from('guards').update(payload).eq('id', id)
+        const { error: dbError } = await supabase.from('guards').update(payload).eq('id', id)
+        if (dbError) throw dbError
       } else {
         const password = Math.random().toString(36).slice(-8) + 'A1!'
         const { data: authData, error: authError } = await supabase.auth.signUp({ email: form.email, password })
         if (authError) throw authError
 
         const userId = authData.user.id
-        await supabase.from('users').insert({
+        const { error: userError } = await supabase.from('users').insert({
           id: userId, full_name: form.full_name, role: 'guardia',
           contract_id: form.contract_id || null, phone: form.phone,
           photo_url, active: true,
         })
-        await supabase.from('guards').insert({
+        if (userError) throw userError
+        const { error: guardError } = await supabase.from('guards').insert({
           user_id: userId, ci: form.ci, full_name: form.full_name,
           phone: form.phone, emergency_contact: form.emergency_contact,
           contract_id: form.contract_id || null, photo_url, active: true,
         })
+        if (guardError) throw guardError
         setTempPassword(password)
         setSaving(false)
         return
       }
       navigate('/guardias')
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     }
     setSaving(false)
   }
@@ -81,6 +89,8 @@ export default function GuardiaForm() {
     borderRadius: T.RADIUS_SM, fontSize: 15, fontFamily: T.FONT_BODY, outline: 'none', boxSizing: 'border-box',
   }
   const labelStyle = { display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }
+
+  if (isEdit && loadingData) return <Layout><div style={{padding:40,textAlign:'center',fontFamily:"'Nunito', sans-serif",color:'#6B6B6B'}}>Cargando...</div></Layout>
 
   if (tempPassword) {
     return (
@@ -109,6 +119,7 @@ export default function GuardiaForm() {
       </h1>
       <div style={{ background: T.WHITE, borderRadius: T.CARD_RADIUS, boxShadow: T.SHADOW, padding: 32, maxWidth: 600 }}>
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={saving} style={{border:'none',padding:0,margin:0}}>
           {!isEdit && (
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Email *</label>
@@ -154,8 +165,10 @@ export default function GuardiaForm() {
               borderRadius: T.RADIUS_SM, cursor: 'pointer', fontFamily: T.FONT_BODY, fontSize: 15,
             }}>Cancelar</button>
           </div>
+          </fieldset>
         </form>
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

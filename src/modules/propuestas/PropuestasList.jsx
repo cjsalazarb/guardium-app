@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -25,6 +26,7 @@ const statusLabels = {
 export default function PropuestasList() {
   const [proposals, setProposals] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -32,10 +34,11 @@ export default function PropuestasList() {
   }, [])
 
   async function loadProposals() {
-    const { data } = await supabase
+    const { data, error: dbErr } = await supabase
       .from('proposals')
       .select('*')
       .order('created_at', { ascending: false })
+    if (dbErr) { setError('Error al cargar propuestas. Intente de nuevo.'); setLoading(false); return }
     setProposals(data || [])
     setLoading(false)
   }
@@ -116,6 +119,7 @@ export default function PropuestasList() {
           </table>
         )}
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

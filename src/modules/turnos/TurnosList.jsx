@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -25,6 +26,7 @@ export default function TurnosList() {
   const [filterContract, setFilterContract] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ guard_id: '', contract_id: '', start_time: '', end_time: '' })
+  const [error, setError] = useState(null)
 
   const days = getWeekDays(weekOffset)
   const weekStart = days[0].toISOString()
@@ -38,6 +40,7 @@ export default function TurnosList() {
       supabase.from('contracts').select('id, client_name').eq('status', 'activo'),
       supabase.from('guards').select('id, full_name, contract_id').eq('active', true),
     ])
+    if (s.error || c.error || g.error) { setError('Error al cargar datos. Intente de nuevo.'); return }
     let filtered = s.data || []
     if (filterContract) filtered = filtered.filter(x => x.contract_id === filterContract)
     setShifts(filtered)
@@ -47,7 +50,8 @@ export default function TurnosList() {
 
   async function createShift(e) {
     e.preventDefault()
-    await supabase.from('shifts').insert({ ...form, status: 'programado' })
+    const { error: dbErr } = await supabase.from('shifts').insert({ ...form, status: 'programado' })
+    if (dbErr) { setError('Error al crear turno. Intente de nuevo.'); return }
     setShowForm(false)
     setForm({ guard_id: '', contract_id: '', start_time: '', end_time: '' })
     loadData()
@@ -181,6 +185,7 @@ export default function TurnosList() {
           </table>
         </div>
       )}
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

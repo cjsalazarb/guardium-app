@@ -1,27 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
 export default function GuardiasList() {
   const [guards, setGuards] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => { loadGuards() }, [])
 
   async function loadGuards() {
-    const { data } = await supabase
+    const { data, error: dbErr } = await supabase
       .from('guards')
       .select('*, contract:contracts(client_name)')
       .order('full_name')
+    if (dbErr) { setError('Error al cargar guardias. Intente de nuevo.'); setLoading(false); return }
     setGuards(data || [])
     setLoading(false)
   }
 
   async function toggleActive(guard) {
-    await supabase.from('guards').update({ active: !guard.active }).eq('id', guard.id)
+    const { error: dbErr } = await supabase.from('guards').update({ active: !guard.active }).eq('id', guard.id)
+    if (dbErr) { setError('Error al actualizar guardia. Intente de nuevo.'); return }
     loadGuards()
   }
 
@@ -89,6 +93,7 @@ export default function GuardiasList() {
           ))}
         </div>
       )}
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

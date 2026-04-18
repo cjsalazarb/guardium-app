@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 import { useAuth } from '../../lib/auth'
@@ -25,6 +26,7 @@ export default function IncidentesList() {
   const [filterSeverity, setFilterSeverity] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDate, setFilterDate] = useState('')
+  const [error, setError] = useState(null)
   const [form, setForm] = useState({
     title: '', description: '', severity: 'medio', guard_name: '', location: '',
   })
@@ -32,7 +34,8 @@ export default function IncidentesList() {
   useEffect(() => { loadIncidents(); loadContracts() }, [filterContract, filterSeverity, filterStatus, filterDate])
 
   async function loadContracts() {
-    const { data } = await supabase.from('contracts').select('id, client_name').order('client_name')
+    const { data, error: dbErr } = await supabase.from('contracts').select('id, client_name').order('client_name')
+    if (dbErr) { setError('Error al cargar contratos. Intente de nuevo.'); return }
     setContracts(data || [])
   }
 
@@ -45,7 +48,8 @@ export default function IncidentesList() {
       q = q.gte('created_at', filterDate + 'T00:00:00')
       q = q.lte('created_at', filterDate + 'T23:59:59')
     }
-    const { data } = await q
+    const { data, error: dbErr } = await q
+    if (dbErr) { setError('Error al cargar incidentes. Intente de nuevo.'); setLoading(false); return }
     setIncidents(data || [])
     setLoading(false)
   }
@@ -63,7 +67,8 @@ export default function IncidentesList() {
       contract_id: contractId || null,
       created_at: new Date().toISOString(),
     }
-    await supabase.from('incidents').insert(payload)
+    const { error: dbErr } = await supabase.from('incidents').insert(payload)
+    if (dbErr) { setError('Error al registrar incidente. Intente de nuevo.'); return }
     setForm({ title: '', description: '', severity: 'medio', guard_name: '', location: '' })
     setShowForm(false)
     loadIncidents()
@@ -74,7 +79,8 @@ export default function IncidentesList() {
     if (!next) return
     const updates = { status: next }
     if (next === 'cerrado') updates.closed_at = new Date().toISOString()
-    await supabase.from('incidents').update(updates).eq('id', incident.id)
+    const { error: dbErr } = await supabase.from('incidents').update(updates).eq('id', incident.id)
+    if (dbErr) { setError('Error al cambiar estado. Intente de nuevo.'); return }
     loadIncidents()
   }
 
@@ -260,6 +266,7 @@ export default function IncidentesList() {
           </table>
         </div>
       )}
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }

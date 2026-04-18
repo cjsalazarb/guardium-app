@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import Toast from '../../components/Toast'
 import { useAuth } from '../../lib/auth'
 import { T } from '../../styles/tokens'
 
@@ -13,6 +14,7 @@ export default function TabletPortal() {
   const [modalForm, setModalForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [confirmMsg, setConfirmMsg] = useState('')
+  const [error, setError] = useState(null)
   const [contract, setContract] = useState(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -23,7 +25,8 @@ export default function TabletPortal() {
   }, [user])
 
   async function loadData() {
-    const { data: g } = await supabase.from('guards').select('*').eq('user_id', user.id).single()
+    const { data: g, error: gErr } = await supabase.from('guards').select('*').eq('user_id', user.id).single()
+    if (gErr) { setError('Error al cargar datos. Intente de nuevo.'); return }
     setGuard(g)
     if (g) {
       const { data: c } = await supabase.from('contracts').select('client_name').eq('id', g.contract_id).single()
@@ -96,19 +99,21 @@ export default function TabletPortal() {
     e.preventDefault()
     setSaving(true)
     const base = { contract_id: guard?.contract_id }
+    let result
     if (modal === 'novedad') {
-      await supabase.from('novelty_log').insert({ ...base, guard_id: guard.id, shift_id: currentShift?.id, content: modalForm.content })
+      result = await supabase.from('novelty_log').insert({ ...base, guard_id: guard.id, shift_id: currentShift?.id, content: modalForm.content })
     } else if (modal === 'incidente') {
-      await supabase.from('incident_reports').insert({ ...base, guard_id: guard.id, title: modalForm.title, description: modalForm.description, severity: modalForm.severity || 'bajo' })
+      result = await supabase.from('incident_reports').insert({ ...base, guard_id: guard.id, title: modalForm.title, description: modalForm.description, severity: modalForm.severity || 'bajo' })
     } else if (modal === 'vehiculo') {
-      await supabase.from('vehicles').insert({ ...base, plate: modalForm.plate?.toUpperCase(), type: modalForm.type, brand: modalForm.brand, owner_name: modalForm.owner_name })
+      result = await supabase.from('vehicles').insert({ ...base, plate: modalForm.plate?.toUpperCase(), type: modalForm.type, brand: modalForm.brand, owner_name: modalForm.owner_name })
     } else if (modal === 'paquete') {
-      await supabase.from('packages').insert({ ...base, recipient_name: modalForm.recipient_name, sender: modalForm.sender, description: modalForm.description })
+      result = await supabase.from('packages').insert({ ...base, recipient_name: modalForm.recipient_name, sender: modalForm.sender, description: modalForm.description })
     } else if (modal === 'visitante') {
-      await supabase.from('visitors').insert({ ...base, full_name: modalForm.full_name, ci: modalForm.ci, reason: modalForm.reason, host_name: modalForm.host_name })
+      result = await supabase.from('visitors').insert({ ...base, full_name: modalForm.full_name, ci: modalForm.ci, reason: modalForm.reason, host_name: modalForm.host_name })
     } else if (modal === 'contratista') {
-      await supabase.from('contractors').insert({ ...base, full_name: modalForm.full_name, company: modalForm.company, ci: modalForm.ci, permit_type: modalForm.permit_type })
+      result = await supabase.from('contractors').insert({ ...base, full_name: modalForm.full_name, company: modalForm.company, ci: modalForm.ci, permit_type: modalForm.permit_type })
     }
+    if (result?.error) { setError('Error al registrar. Intente de nuevo.'); setSaving(false); return }
     setSaving(false)
     setModal(null)
     setModalForm({})
@@ -225,6 +230,8 @@ export default function TabletPortal() {
           </button>
         ))}
       </div>
+
+      <Toast message={error} onClose={() => setError(null)} />
 
       {modal && (
         <div style={{

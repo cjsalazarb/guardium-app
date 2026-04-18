@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
+import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
 
@@ -21,6 +22,7 @@ export default function PropuestaForm() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [form, setForm] = useState({ ...defaultForm })
 
   useEffect(() => {
@@ -120,11 +122,15 @@ export default function PropuestaForm() {
       cost_data,
       total_monthly: calcs.totalMonthly, total_annual: calcs.totalAnnual,
     }
+    let dbErr
     if (isEdit) {
-      await supabase.from('proposals').update(payload).eq('id', id)
+      const r = await supabase.from('proposals').update(payload).eq('id', id)
+      dbErr = r.error
     } else {
-      await supabase.from('proposals').insert(payload)
+      const r = await supabase.from('proposals').insert(payload)
+      dbErr = r.error
     }
+    if (dbErr) { setError('Error al guardar propuesta. Intente de nuevo.'); setSaving(false); return }
     setSaving(false)
     navigate('/propuestas')
   }
@@ -509,6 +515,7 @@ export default function PropuestaForm() {
           Cancelar
         </button>
       </div>
+      <Toast message={error} onClose={() => setError(null)} />
     </Layout>
   )
 }
