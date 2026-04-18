@@ -1,15 +1,23 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { T } from '../styles/tokens'
 import { useAuth } from '../lib/auth'
+import { NotificationBell } from '../modules/notificaciones/NotificacionesPanel'
+import NotificacionesPanel from '../modules/notificaciones/NotificacionesPanel'
 
 const modules = [
   { icon: '\u{1F3E0}', label: 'Dashboard', path: '/dashboard' },
   { icon: '\u{1F4CB}', label: 'Contratos', path: '/contratos' },
   { icon: '\u{1F46E}', label: 'Guardias', path: '/guardias' },
   { icon: '\u23F0', label: 'Turnos', path: '/turnos' },
+  { icon: '\u{1F465}', label: 'Visitantes', path: '/visitantes' },
+  { icon: '\u{1F697}', label: 'Vehiculos', path: '/vehiculos' },
+  { icon: '\u{1F4E6}', label: 'Paquetes', path: '/paquetes' },
+  { icon: '\u{1F6A8}', label: 'Incidentes', path: '/incidentes' },
+  { icon: '\u{1F4D3}', label: 'Novedades', path: '/novedades' },
+  { icon: '\u{1F527}', label: 'Contratistas', path: '/contratistas' },
   { icon: '\u{1F4BC}', label: 'Propuestas', path: '/propuestas' },
   { icon: '\u{1F4B3}', label: 'Facturacion', path: '/facturacion' },
-  { icon: '\u{1F6A8}', label: 'Incidentes', path: '/incidentes' },
 ]
 
 const bottomItems = [
@@ -20,6 +28,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut } = useAuth()
+  const [notifOpen, setNotifOpen] = useState(false)
 
   const isActive = (path) => location.pathname.startsWith(path)
 
@@ -93,6 +102,9 @@ export default function Sidebar() {
 
       {/* Bottom items */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <div onClick={() => setNotifOpen(true)} title="Notificaciones" style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+          <NotificationBell />
+        </div>
         {bottomItems.map(renderItem)}
         <div
           onClick={signOut}
@@ -121,6 +133,7 @@ export default function Sidebar() {
           {'\u{1F6AA}'}
         </div>
       </div>
+      <NotificacionesPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   )
 }
