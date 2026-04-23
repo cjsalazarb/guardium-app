@@ -1,5 +1,4 @@
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
 
 // Colores corporativos PDF
 const C = {
@@ -14,6 +13,7 @@ const C = {
 }
 
 const MARGIN = 20
+const TABLE_W = 170
 const fmt = n => Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // ═══════════════════════════════════════
@@ -21,7 +21,45 @@ const fmt = n => Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits:
 // ═══════════════════════════════════════
 function pageW(doc) { return doc.internal.pageSize.getWidth() }
 function pageH(doc) { return doc.internal.pageSize.getHeight() }
-function contentW(doc) { return pageW(doc) - MARGIN * 2 }
+function contentW() { return TABLE_W }
+
+function drawTable(doc, headers, rows, startY, options = {}) {
+  const { colWidths, rowHeight = 8, headerBg = [45, 55, 72], fontSize = 9 } = options
+  const widths = colWidths || headers.map(() => TABLE_W / headers.length)
+  let y = startY
+
+  // Header row
+  doc.setFillColor(...headerBg)
+  doc.rect(MARGIN, y, TABLE_W, rowHeight, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(fontSize)
+  doc.setFont('helvetica', 'bold')
+  let x = MARGIN
+  headers.forEach((h, i) => {
+    doc.text(String(h), x + 2, y + 5.5)
+    x += widths[i]
+  })
+  y += rowHeight
+
+  // Data rows
+  doc.setFontSize(fontSize)
+  rows.forEach((row, rowIndex) => {
+    const bg = rowIndex % 2 === 0 ? [255, 255, 255] : [247, 250, 252]
+    doc.setFillColor(...bg)
+    doc.rect(MARGIN, y, TABLE_W, rowHeight, 'F')
+    doc.setDrawColor(226, 232, 240)
+    doc.rect(MARGIN, y, TABLE_W, rowHeight, 'S')
+    doc.setTextColor(26, 32, 44)
+    doc.setFont('helvetica', 'normal')
+    x = MARGIN
+    row.forEach((cell, i) => {
+      doc.text(String(cell ?? ''), x + 2, y + 5.5, { maxWidth: widths[i] - 4 })
+      x += widths[i]
+    })
+    y += rowHeight
+  })
+  return y
+}
 
 function addHeader(doc) {
   doc.setFont('helvetica', 'bold')
@@ -69,15 +107,12 @@ function sectionHeader(doc, y, num, title) {
 }
 
 function drawShield(doc, cx, cy, size) {
-  // Simple shield shape
   doc.setFillColor(C.WHITE)
   doc.setDrawColor(C.WHITE)
   const s = size
-  // Shield body
   doc.roundedRect(cx - s / 2, cy - s / 2, s, s * 0.7, 3, 3, 'F')
-  // Shield bottom triangle
-  doc.triangle(cx - s / 2, cy + s * 0.2, cx + s / 2, cy + s * 0.2, cx, cy + s / 2, 'F')
-  // G letter
+  // Bottom point via small rect (triangle not always available)
+  doc.roundedRect(cx - s / 4, cy + s * 0.1, s / 2, s * 0.3, 2, 2, 'F')
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(size * 0.6)
   doc.setTextColor(C.HEADER_BG)
@@ -105,7 +140,6 @@ function renderPortada(doc, proposal) {
   doc.text('Seguridad Privada', splitX + (w - splitX) / 2, h * 0.4 + 48, { align: 'center' })
 
   // Left column
-  // Logo text
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
   doc.setTextColor(C.TEXT)
@@ -129,13 +163,11 @@ function renderPortada(doc, proposal) {
   doc.setTextColor(C.SUBTLE)
   doc.text('Propuesta Comercial de Servicios', MARGIN, afterTitle + 5)
 
-  // Separator
   doc.setDrawColor(C.RED)
   doc.setLineWidth(1)
   doc.line(MARGIN, afterTitle + 12, MARGIN + 50, afterTitle + 12)
   doc.setLineWidth(0.2)
 
-  // Client info
   const clientY = afterTitle + 28
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
@@ -154,7 +186,6 @@ function renderPortada(doc, proposal) {
     doc.text(proposal.client_address, MARGIN, clientY + 18)
   }
 
-  // Date
   const dateY = h - 50
   const today = new Date().toLocaleDateString('es-BO', { year: 'numeric', month: 'long', day: 'numeric' })
   doc.setFontSize(10)
@@ -170,7 +201,6 @@ function renderPresentacion(doc) {
   addHeader(doc)
   let y = sectionHeader(doc, 28, '1', 'Presentacion de GUARDIUM')
 
-  // Intro paragraphs
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(C.TEXT)
@@ -178,15 +208,14 @@ function renderPresentacion(doc) {
   const p1 = 'GUARDIUM Seguridad Privada es una empresa boliviana especializada en servicios de seguridad privada. Nos distinguimos por ofrecer un modelo unico que integra guardias profesionales, tecnologia de control y gestion digital en una sola mensualidad.'
   const p2 = 'Nuestra propuesta de valor se centra en la transparencia operativa. Cada turno de guardia queda documentado digitalmente mediante fotografias y reportes en tiempo real. El cliente tiene visibilidad total desde cualquier dispositivo.'
 
-  const lines1 = doc.splitTextToSize(p1, contentW(doc))
+  const lines1 = doc.splitTextToSize(p1, contentW())
   doc.text(lines1, MARGIN, y)
   y += lines1.length * 5 + 6
 
-  const lines2 = doc.splitTextToSize(p2, contentW(doc))
+  const lines2 = doc.splitTextToSize(p2, contentW())
   doc.text(lines2, MARGIN, y)
   y += lines2.length * 5 + 14
 
-  // 2x2 value cards
   const cards = [
     { icon: 'S', title: 'Guardias Profesionales', desc: 'Personal capacitado y certificado para brindar seguridad integral' },
     { icon: 'C', title: 'Control Digital', desc: 'Registro fotografico y reportes en tiempo real de cada turno' },
@@ -194,7 +223,7 @@ function renderPresentacion(doc) {
     { icon: '$', title: 'Una Mensualidad', desc: 'Sin costos ocultos, sin inversion inicial. Todo incluido' },
   ]
 
-  const cardW = (contentW(doc) - 8) / 2
+  const cardW = (contentW() - 8) / 2
   const cardH = 38
 
   cards.forEach((card, i) => {
@@ -203,11 +232,9 @@ function renderPresentacion(doc) {
     const cx = MARGIN + col * (cardW + 8)
     const cy = y + row * (cardH + 8)
 
-    // Card background
     doc.setFillColor(C.CARD_BG)
     doc.roundedRect(cx, cy, cardW, cardH, 3, 3, 'F')
 
-    // Icon circle
     doc.setFillColor(C.HEADER_BG)
     doc.circle(cx + 12, cy + 12, 6, 'F')
     doc.setFont('helvetica', 'bold')
@@ -215,13 +242,11 @@ function renderPresentacion(doc) {
     doc.setTextColor(C.WHITE)
     doc.text(card.icon, cx + 12, cy + 13.5, { align: 'center' })
 
-    // Title
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
     doc.setTextColor(C.TEXT)
     doc.text(card.title, cx + 22, cy + 13)
 
-    // Description
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
     doc.setTextColor(C.SUBTLE)
@@ -239,7 +264,6 @@ function renderDetalleServicio(doc, costData) {
 
   const sections = []
 
-  // Personal
   const guards = Number(costData.num_guards) || 0
   const salary = Number(costData.monthly_salary) || 0
   if (guards > 0) {
@@ -253,23 +277,21 @@ function renderDetalleServicio(doc, costData) {
     })
   }
 
-  // Equipment
   const equipItems = []
   if (costData.cell_enabled) {
     const qty = Number(costData.cell_qty) || 0
     const cost = Number(costData.cell_cost) || 0
-    if (qty > 0) equipItems.push(`${qty} celular${qty > 1 ? 'es' : ''} — Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
+    if (qty > 0) equipItems.push(`${qty} celular${qty > 1 ? 'es' : ''} - Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
   }
   if (costData.tablet_enabled) {
     const qty = Number(costData.tablet_qty) || 0
     const cost = Number(costData.tablet_cost) || 0
-    if (qty > 0) equipItems.push(`${qty} tablet${qty > 1 ? 's' : ''} — Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
+    if (qty > 0) equipItems.push(`${qty} tablet${qty > 1 ? 's' : ''} - Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
   }
   if (equipItems.length > 0) {
     sections.push({ title: 'Equipamiento Tecnologico', items: equipItems })
   }
 
-  // Uniforms
   const uniformCost = Number(costData.uniform_cost_per_set) || 0
   const uniformChanges = Number(costData.uniform_changes_per_year) || 0
   if (uniformCost > 0 && guards > 0) {
@@ -284,29 +306,25 @@ function renderDetalleServicio(doc, costData) {
     })
   }
 
-  // Implementos
   const implementos = costData.implementos || []
   if (implementos.length > 0) {
     sections.push({
       title: 'Implementos',
-      items: implementos.map(it => `${it.description || 'Item'} — Bs. ${fmt(it.global_price)} (mensual: Bs. ${fmt(Number(it.global_price || 0) / 12)})`),
+      items: implementos.map(it => `${it.description || 'Item'} - Bs. ${fmt(it.global_price)} (mensual: Bs. ${fmt(Number(it.global_price || 0) / 12)})`),
     })
   }
 
-  // Otros
   const otros = costData.otros || []
   if (otros.length > 0) {
     sections.push({
       title: 'Otros Costos',
-      items: otros.map(it => `${it.description || 'Item'} — Bs. ${fmt(it.amount)} (${it.frequency || 'mensual'})`),
+      items: otros.map(it => `${it.description || 'Item'} - Bs. ${fmt(it.amount)} (${it.frequency || 'mensual'})`),
     })
   }
 
-  // Render sections
   sections.forEach((sec, idx) => {
     if (y > 250) { doc.addPage(); addHeader(doc); y = 28 }
 
-    // Number circle + title
     doc.setFillColor(C.HEADER_BG)
     doc.circle(MARGIN + 5, y + 1, 5, 'F')
     doc.setFont('helvetica', 'bold')
@@ -320,12 +338,11 @@ function renderDetalleServicio(doc, costData) {
     doc.text(sec.title, MARGIN + 14, y + 3)
     y += 10
 
-    // Bullet items
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.setTextColor(C.SUBTLE)
     sec.items.forEach(item => {
-      const lines = doc.splitTextToSize(item, contentW(doc) - 18)
+      const lines = doc.splitTextToSize(item, contentW() - 18)
       doc.text('\u2022', MARGIN + 6, y)
       doc.text(lines, MARGIN + 12, y)
       y += lines.length * 5 + 2
@@ -343,7 +360,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
 
   // Data box
   doc.setFillColor(C.CARD_BG)
-  doc.roundedRect(MARGIN, y, contentW(doc), 36, 3, 3, 'F')
+  doc.roundedRect(MARGIN, y, TABLE_W, 36, 3, 3, 'F')
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(C.SUBTLE)
@@ -362,7 +379,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   ]
 
   infoLeft.forEach((line, i) => doc.text(line, MARGIN + 6, y + 8 + i * 6))
-  infoRight.forEach((line, i) => doc.text(line, MARGIN + contentW(doc) / 2, y + 8 + i * 6))
+  infoRight.forEach((line, i) => doc.text(line, MARGIN + TABLE_W / 2, y + 8 + i * 6))
 
   y += 42
 
@@ -374,7 +391,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
 
   if (guards > 0) {
     rowNum++
-    rows.push([rowNum, 'Personal de seguridad', guards, `Bs. ${fmt(salary)}`, `Bs. ${fmt(guards * salary)}`])
+    rows.push([String(rowNum), 'Personal de seguridad', String(guards), `Bs. ${fmt(salary)}`, `Bs. ${fmt(guards * salary)}`])
   }
 
   const cellTotal = costData.cell_enabled ? (Number(costData.cell_qty) || 0) * (Number(costData.cell_cost) || 0) : 0
@@ -382,20 +399,20 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   const equipMonthly = (cellTotal + tabletTotal) / 12
   if (equipMonthly > 0) {
     rowNum++
-    rows.push([rowNum, 'Equipamiento tecnologico', '-', '-', `Bs. ${fmt(equipMonthly)}`])
+    rows.push([String(rowNum), 'Equipamiento tecnologico', '-', '-', `Bs. ${fmt(equipMonthly)}`])
   }
 
   const uniformMonthly = guards * (Number(costData.uniform_cost_per_set) || 0) * (Number(costData.uniform_changes_per_year) || 0) / 12
   if (uniformMonthly > 0) {
     rowNum++
-    rows.push([rowNum, 'Uniformes', guards, `Bs. ${fmt(Number(costData.uniform_cost_per_set) || 0)}`, `Bs. ${fmt(uniformMonthly)}`])
+    rows.push([String(rowNum), 'Uniformes', String(guards), `Bs. ${fmt(Number(costData.uniform_cost_per_set) || 0)}`, `Bs. ${fmt(uniformMonthly)}`])
   }
 
   const implementos = costData.implementos || []
   const implementoMonthly = implementos.reduce((s, it) => s + (Number(it.global_price) || 0), 0) / 12
   if (implementoMonthly > 0) {
     rowNum++
-    rows.push([rowNum, 'Implementos', implementos.length, '-', `Bs. ${fmt(implementoMonthly)}`])
+    rows.push([String(rowNum), 'Implementos', String(implementos.length), '-', `Bs. ${fmt(implementoMonthly)}`])
   }
 
   const otros = costData.otros || []
@@ -406,58 +423,67 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   }, 0)
   if (otrosMonthly > 0) {
     rowNum++
-    rows.push([rowNum, 'Otros costos', otros.length, '-', `Bs. ${fmt(otrosMonthly)}`])
+    rows.push([String(rowNum), 'Otros costos', String(otros.length), '-', `Bs. ${fmt(otrosMonthly)}`])
   }
 
-  // AutoTable
-  doc.autoTable({
-    startY: y,
-    head: [['N.', 'Descripcion del Servicio', 'Cant.', 'Precio Unit. Bs.', 'Total Mensual Bs.']],
-    body: rows,
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, textColor: C.TEXT },
-    headStyles: { fillColor: C.HEADER_BG, textColor: C.WHITE, fontStyle: 'bold', fontSize: 9 },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
-      2: { halign: 'center', cellWidth: 18 },
-      3: { halign: 'right', cellWidth: 35 },
-      4: { halign: 'right', cellWidth: 40 },
-    },
-    margin: { left: MARGIN, right: MARGIN },
-  })
+  // Draw quotation table
+  const colWidths = [12, 78, 17, 32, 31]
+  y = drawTable(doc, ['N.', 'Descripcion del Servicio', 'Cant.', 'Precio Unit. Bs.', 'Total Mensual Bs.'], rows, y, { colWidths })
 
-  let tableEndY = doc.lastAutoTable.finalY
-
-  // Totals rows
+  // Totals
   const subtotal = calcs.subtotal
   const marginPct = Number(costData.admin_margin_pct) || 0
   const marginAmt = calcs.marginAmount
   const totalMonthly = calcs.totalMonthly
   const totalAnnual = calcs.totalAnnual
 
-  doc.autoTable({
-    startY: tableEndY,
-    body: [
-      [{ content: 'Subtotal costos directos', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, `Bs. ${fmt(subtotal)}`],
-      [{ content: `Margen administrativo ${marginPct}%`, colSpan: 4, styles: { halign: 'right' } }, `Bs. ${fmt(marginAmt)}`],
-      [{ content: 'TOTAL MENSUAL Bs.', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', textColor: C.WHITE, fillColor: C.HEADER_BG } }, { content: `Bs. ${fmt(totalMonthly)}`, styles: { fontStyle: 'bold', textColor: C.WHITE, fillColor: C.HEADER_BG } }],
-      [{ content: 'TOTAL ANUAL Bs.', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', textColor: C.WHITE, fillColor: C.RED } }, { content: `Bs. ${fmt(totalAnnual)}`, styles: { fontStyle: 'bold', textColor: C.WHITE, fillColor: C.RED } }],
-    ],
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, textColor: C.TEXT },
-    columnStyles: { 4: { halign: 'right', cellWidth: 40 } },
-    margin: { left: MARGIN, right: MARGIN },
-  })
+  // Subtotal row
+  doc.setFillColor(241, 245, 249)
+  doc.rect(MARGIN, y, TABLE_W, 8, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.rect(MARGIN, y, TABLE_W, 8, 'S')
+  doc.setTextColor(26, 32, 44)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.text('Subtotal costos directos', MARGIN + 2, y + 5.5)
+  doc.text(`Bs. ${fmt(subtotal)}`, MARGIN + TABLE_W - 2, y + 5.5, { align: 'right' })
+  y += 8
 
-  tableEndY = doc.lastAutoTable.finalY + 10
+  // Margin row
+  doc.setFillColor(241, 245, 249)
+  doc.rect(MARGIN, y, TABLE_W, 8, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.rect(MARGIN, y, TABLE_W, 8, 'S')
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Margen administrativo (${marginPct}%)`, MARGIN + 2, y + 5.5)
+  doc.text(`Bs. ${fmt(marginAmt)}`, MARGIN + TABLE_W - 2, y + 5.5, { align: 'right' })
+  y += 8
+
+  // TOTAL MENSUAL — dark
+  doc.setFillColor(45, 55, 72)
+  doc.rect(MARGIN, y, TABLE_W, 10, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('TOTAL MENSUAL', MARGIN + 4, y + 7)
+  doc.text(`Bs. ${fmt(totalMonthly)}`, MARGIN + TABLE_W - 4, y + 7, { align: 'right' })
+  y += 10
+
+  // TOTAL ANUAL — red
+  doc.setFillColor(192, 32, 42)
+  doc.rect(MARGIN, y, TABLE_W, 10, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.text('TOTAL ANUAL', MARGIN + 4, y + 7)
+  doc.text(`Bs. ${fmt(totalAnnual)}`, MARGIN + TABLE_W - 4, y + 7, { align: 'right' })
+  y += 16
 
   // Validity note
   doc.setFont('helvetica', 'italic')
   doc.setFontSize(8)
   doc.setTextColor(C.SUBTLE)
   const note = 'Esta propuesta tiene vigencia de 15 dias calendario a partir de la fecha de emision. Todos los precios estan expresados en Bolivianos (Bs.)'
-  const noteLines = doc.splitTextToSize(note, contentW(doc))
-  doc.text(noteLines, MARGIN, tableEndY)
+  const noteLines = doc.splitTextToSize(note, contentW())
+  doc.text(noteLines, MARGIN, y)
 }
 
 // ═══════════════════════════════════════
@@ -471,11 +497,10 @@ function renderTerminos(doc, proposal) {
   doc.setFontSize(10)
   doc.setTextColor(C.TEXT)
   const intro = 'Los siguientes terminos regulan la relacion contractual entre GUARDIUM Seguridad Privada y el cliente.'
-  const introLines = doc.splitTextToSize(intro, contentW(doc))
+  const introLines = doc.splitTextToSize(intro, contentW())
   doc.text(introLines, MARGIN, y)
   y += introLines.length * 5 + 8
 
-  // Clauses
   const clauses = [
     { title: 'Duracion del Contrato', text: 'El contrato tendra duracion de doce (12) meses calendario a partir de la fecha de inicio del servicio.' },
     { title: 'Renovacion Automatica', text: 'Al vencimiento, el contrato se renueva automaticamente por periodos iguales de 12 meses, salvo notificacion en contrario.' },
@@ -487,11 +512,9 @@ function renderTerminos(doc, proposal) {
   clauses.forEach((clause, i) => {
     if (y > 230) { doc.addPage(); addHeader(doc); y = 28 }
 
-    // Clause box
     doc.setFillColor(C.CARD_BG)
-    doc.roundedRect(MARGIN, y, contentW(doc), 18, 2, 2, 'F')
+    doc.roundedRect(MARGIN, y, contentW(), 18, 2, 2, 'F')
 
-    // Number
     doc.setFillColor(C.HEADER_BG)
     doc.circle(MARGIN + 8, y + 6, 4, 'F')
     doc.setFont('helvetica', 'bold')
@@ -499,17 +522,15 @@ function renderTerminos(doc, proposal) {
     doc.setTextColor(C.WHITE)
     doc.text(`${i + 1}`, MARGIN + 8, y + 7.5, { align: 'center' })
 
-    // Title
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10)
     doc.setTextColor(C.TEXT)
     doc.text(clause.title, MARGIN + 16, y + 7)
 
-    // Text
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(C.SUBTLE)
-    const clauseLines = doc.splitTextToSize(clause.text, contentW(doc) - 20)
+    const clauseLines = doc.splitTextToSize(clause.text, contentW() - 20)
     doc.text(clauseLines, MARGIN + 16, y + 13)
 
     y += 22
@@ -517,32 +538,28 @@ function renderTerminos(doc, proposal) {
 
   y += 6
 
-  // Responsibilities table
+  // Responsibilities table (manual)
   if (y > 200) { doc.addPage(); addHeader(doc); y = 28 }
 
-  doc.autoTable({
-    startY: y,
-    head: [['Responsabilidades GUARDIUM', 'Responsabilidades del Cliente']],
-    body: [
+  y = drawTable(doc,
+    ['Responsabilidades GUARDIUM', 'Responsabilidades del Cliente'],
+    [
       ['Proveer personal en horarios acordados', 'Realizar pagos en fecha acordada'],
       ['Garantizar relevos por vacaciones o permisos', 'Facilitar acceso al personal de seguridad'],
       ['Mantener equipos operativos', 'No alterar equipos instalados'],
       ['Reportes digitales en tiempo real', 'Brindar condiciones minimas de trabajo'],
     ],
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, textColor: C.TEXT },
-    headStyles: { fillColor: C.HEADER_BG, textColor: C.WHITE, fontStyle: 'bold' },
-    margin: { left: MARGIN, right: MARGIN },
-  })
+    y,
+    { colWidths: [85, 85] }
+  )
 
-  y = doc.lastAutoTable.finalY + 20
+  y += 12
 
   // Signatures
   if (y > 230) { doc.addPage(); addHeader(doc); y = 28 }
 
-  const sigW = (contentW(doc) - 20) / 2
+  const sigW = (contentW() - 20) / 2
 
-  // GUARDIUM side
   doc.setDrawColor(C.TEXT)
   doc.line(MARGIN, y + 20, MARGIN + sigW, y + 20)
   doc.setFont('helvetica', 'bold')
@@ -555,7 +572,6 @@ function renderTerminos(doc, proposal) {
   doc.text('Administradora General', MARGIN, y + 26)
   doc.text('GUARDIUM Seguridad Privada', MARGIN, y + 32)
 
-  // Client side
   const rightX = MARGIN + sigW + 20
   doc.line(rightX, y + 20, rightX + sigW, y + 20)
   doc.setFont('helvetica', 'bold')
@@ -575,30 +591,23 @@ function renderTerminos(doc, proposal) {
 export function generateProposalPDF(proposal, costData, calcs) {
   const doc = new jsPDF('p', 'mm', 'a4')
 
-  // Page 1: Portada
   renderPortada(doc, proposal)
 
-  // Page 2: Presentacion
   doc.addPage()
   renderPresentacion(doc)
 
-  // Page 3: Detalle del servicio
   doc.addPage()
   renderDetalleServicio(doc, costData)
 
-  // Page 4: Propuesta economica
   doc.addPage()
   renderPropuestaEconomica(doc, proposal, costData, calcs)
 
-  // Page 5: Terminos y condiciones
   doc.addPage()
   renderTerminos(doc, proposal)
 
-  // Footers on all pages
   const proposalNum = `GUARD-${new Date().getFullYear()}-${String(proposal.version || 1).padStart(3, '0')}`
   addFooter(doc, proposalNum)
 
-  // Save
   const clientSlug = (proposal.client_name || 'Cliente').replace(/\s+/g, '_')
   const fecha = new Date().toISOString().split('T')[0]
   doc.save(`GUARDIUM_Propuesta_${clientSlug}_v${proposal.version || 1}_${fecha}.pdf`)
