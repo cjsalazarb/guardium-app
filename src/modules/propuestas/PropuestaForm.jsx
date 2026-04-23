@@ -122,17 +122,23 @@ export default function PropuestaForm() {
       cost_data,
       total_monthly: calcs.totalMonthly, total_annual: calcs.totalAnnual,
     }
-    let dbErr
-    if (isEdit) {
-      const r = await supabase.from('proposals').update(payload).eq('id', id)
-      dbErr = r.error
-    } else {
-      const r = await supabase.from('proposals').insert(payload)
-      dbErr = r.error
+    try {
+      let dbErr
+      if (isEdit) {
+        const r = await supabase.from('proposals').update(payload).eq('id', id)
+        dbErr = r.error
+      } else {
+        const r = await supabase.from('proposals').insert(payload)
+        dbErr = r.error
+      }
+      if (dbErr) throw dbErr
+      navigate('/propuestas')
+    } catch (err) {
+      console.error('Error guardando propuesta:', err)
+      setError('Error al guardar propuesta: ' + (err.message || 'Intente de nuevo.'))
+    } finally {
+      setSaving(false)
     }
-    if (dbErr) { setError('Error al guardar propuesta. Intente de nuevo.'); setSaving(false); return }
-    setSaving(false)
-    navigate('/propuestas')
   }
 
   /* ---------- DYNAMIC LISTS ---------- */
