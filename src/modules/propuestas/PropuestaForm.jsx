@@ -23,6 +23,7 @@ export default function PropuestaForm() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const [saving, setSaving] = useState(false)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState({ ...defaultForm })
   const [currentVersion, setCurrentVersion] = useState(1)
@@ -517,30 +518,39 @@ export default function PropuestaForm() {
           {saving ? 'GUARDANDO...' : 'GUARDAR BORRADOR'}
         </button>
         <button
-          type="button" disabled={saving}
+          type="button" disabled={saving || generatingPdf}
           onClick={() => {
-            const costData = {
-              num_guards: Number(form.num_guards), monthly_salary: Number(form.monthly_salary),
-              cell_enabled: form.cell_enabled, cell_qty: Number(form.cell_qty), cell_cost: Number(form.cell_cost),
-              tablet_enabled: form.tablet_enabled, tablet_qty: Number(form.tablet_qty), tablet_cost: Number(form.tablet_cost),
-              uniform_cost_per_set: Number(form.uniform_cost_per_set), uniform_changes_per_year: Number(form.uniform_changes_per_year),
-              implementos: form.implementos, otros: form.otros,
-              admin_margin_pct: Number(form.admin_margin_pct), manual_adjustment: Number(form.manual_adjustment),
+            setGeneratingPdf(true)
+            try {
+              const costData = {
+                num_guards: Number(form.num_guards), monthly_salary: Number(form.monthly_salary),
+                cell_enabled: form.cell_enabled, cell_qty: Number(form.cell_qty), cell_cost: Number(form.cell_cost),
+                tablet_enabled: form.tablet_enabled, tablet_qty: Number(form.tablet_qty), tablet_cost: Number(form.tablet_cost),
+                uniform_cost_per_set: Number(form.uniform_cost_per_set), uniform_changes_per_year: Number(form.uniform_changes_per_year),
+                implementos: form.implementos, otros: form.otros,
+                admin_margin_pct: Number(form.admin_margin_pct), manual_adjustment: Number(form.manual_adjustment),
+              }
+              const proposal = {
+                title: form.title, client_name: form.client_name, client_contact: form.client_contact,
+                client_address: form.client_address, valid_until: form.valid_until,
+                version: currentVersion,
+              }
+              generateProposalPDF(proposal, costData, calcs)
+            } catch (err) {
+              console.error('PDF error:', err)
+              setError('Error al generar PDF: ' + err.message)
+            } finally {
+              setGeneratingPdf(false)
             }
-            const proposal = {
-              title: form.title, client_name: form.client_name, client_contact: form.client_contact,
-              client_address: form.client_address, valid_until: form.valid_until,
-              version: currentVersion,
-            }
-            generateProposalPDF(proposal, costData, calcs)
           }}
           style={{
             padding: '12px 32px', background: T.PRIMARY, color: T.WHITE,
             border: 'none', borderRadius: T.RADIUS_SM,
-            cursor: 'pointer', fontFamily: T.FONT_DISPLAY, fontSize: 16, letterSpacing: '0.04em',
+            cursor: generatingPdf ? 'wait' : 'pointer', fontFamily: T.FONT_DISPLAY, fontSize: 16, letterSpacing: '0.04em',
+            opacity: generatingPdf ? 0.6 : 1,
           }}
         >
-          GENERAR PDF
+          {generatingPdf ? 'GENERANDO...' : 'GENERAR PDF'}
         </button>
         <button
           type="button" disabled={saving}
