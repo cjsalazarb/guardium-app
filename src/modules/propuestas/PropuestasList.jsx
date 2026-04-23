@@ -94,7 +94,7 @@ export default function PropuestasList() {
                     {p.valid_until ? new Date(p.valid_until).toLocaleDateString() : '—'}
                   </td>
                   <td style={{ padding: '14px 16px', fontWeight: 600 }}>
-                    Bs. {p.total_monthly ? Number(p.total_monthly).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '—'}
+                    Bs. {p.total_amount ? Number(p.total_amount).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '—'}
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <span style={{

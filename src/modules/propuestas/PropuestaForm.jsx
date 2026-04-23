@@ -120,7 +120,7 @@ export default function PropuestaForm() {
       valid_until: form.valid_until || null, notes: form.notes,
       status: newStatus || form.status,
       cost_data,
-      total_monthly: calcs.totalMonthly, total_annual: calcs.totalAnnual,
+      total_amount: calcs.totalMonthly,
     }
     try {
       let dbErr

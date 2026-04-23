@@ -52,9 +52,9 @@ export default function PropuestaDashboard() {
       return daysSince(p.created_at) > 7
     })
     const inNeg = proposals.filter(p => p.status === 'en_negociacion')
-    const totalValue = sent.reduce((s, p) => s + (Number(p.total_monthly) || 0), 0)
-    const acceptedValue = accepted.reduce((s, p) => s + (Number(p.total_monthly) || 0), 0)
-    const inNegValue = inNeg.reduce((s, p) => s + (Number(p.total_monthly) || 0), 0)
+    const totalValue = sent.reduce((s, p) => s + (Number(p.total_amount) || 0), 0)
+    const acceptedValue = accepted.reduce((s, p) => s + (Number(p.total_amount) || 0), 0)
+    const inNegValue = inNeg.reduce((s, p) => s + (Number(p.total_amount) || 0), 0)
     const conversionPct = sent.length ? ((accepted.length / sent.length) * 100).toFixed(1) : '0.0'
     const rejectedPct = sent.length ? ((rejected.length / sent.length) * 100).toFixed(1) : '0.0'
 
@@ -96,7 +96,7 @@ export default function PropuestaDashboard() {
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     let cum = 0
     return accepted.map(p => {
-      cum += Number(p.total_monthly) || 0
+      cum += Number(p.total_amount) || 0
       return { date: new Date(p.created_at).toLocaleDateString('es-BO', { month: 'short', day: 'numeric' }), value: cum }
     })
   }, [proposals])
@@ -263,7 +263,7 @@ export default function PropuestaDashboard() {
                   >
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: T.TEXT }}>{p.client_name}</td>
                     <td style={{ padding: '12px 16px', color: T.TEXT }}>{p.title || '—'}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>Bs. {p.total_monthly ? fmt(p.total_monthly) : '—'}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>Bs. {p.total_amount ? fmt(p.total_amount) : '—'}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
