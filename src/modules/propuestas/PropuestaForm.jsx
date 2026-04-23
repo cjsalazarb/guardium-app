@@ -4,6 +4,7 @@ import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
+import { generateProposalPDF } from './generateProposalPDF'
 
 const defaultForm = {
   client_name: '', client_contact: '', client_email: '', client_phone: '', client_address: '',
@@ -517,7 +518,22 @@ export default function PropuestaForm() {
         </button>
         <button
           type="button" disabled={saving}
-          onClick={() => { /* placeholder: PDF generation */ alert('Funcion de PDF en desarrollo') }}
+          onClick={() => {
+            const costData = {
+              num_guards: Number(form.num_guards), monthly_salary: Number(form.monthly_salary),
+              cell_enabled: form.cell_enabled, cell_qty: Number(form.cell_qty), cell_cost: Number(form.cell_cost),
+              tablet_enabled: form.tablet_enabled, tablet_qty: Number(form.tablet_qty), tablet_cost: Number(form.tablet_cost),
+              uniform_cost_per_set: Number(form.uniform_cost_per_set), uniform_changes_per_year: Number(form.uniform_changes_per_year),
+              implementos: form.implementos, otros: form.otros,
+              admin_margin_pct: Number(form.admin_margin_pct), manual_adjustment: Number(form.manual_adjustment),
+            }
+            const proposal = {
+              title: form.title, client_name: form.client_name, client_contact: form.client_contact,
+              client_address: form.client_address, valid_until: form.valid_until,
+              version: currentVersion,
+            }
+            generateProposalPDF(proposal, costData, calcs)
+          }}
           style={{
             padding: '12px 32px', background: T.PRIMARY, color: T.WHITE,
             border: 'none', borderRadius: T.RADIUS_SM,
