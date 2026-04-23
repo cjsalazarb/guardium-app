@@ -1,14 +1,15 @@
 import { jsPDF } from 'jspdf'
+import logoUrl from '../../logo.png'
 
-// Colores corporativos PDF
+// Colores corporativos PDF — rojo/negro GUARDIUM
 const C = {
-  TEXT: '#1A202C',
-  SUBTLE: '#4A5568',
-  CARD_BG: '#F7FAFC',
-  HEADER_BG: '#2D3748',
-  RED: '#C0202A',
+  TEXT: '#1A1A1A',
+  SUBTLE: '#4A4A4A',
+  CARD_BG: [245, 224, 225],   // rojo suave
+  BLACK: [26, 26, 26],        // negro GUARDIUM
+  RED: [192, 32, 42],         // rojo GUARDIUM
   BORDER: '#E2E8F0',
-  LINE: '#CBD5E0',
+  LINE_RGB: [192, 32, 42],    // linea footer roja
   WHITE: '#FFFFFF',
 }
 
@@ -24,7 +25,7 @@ function pageH(doc) { return doc.internal.pageSize.getHeight() }
 function contentW() { return TABLE_W }
 
 function drawTable(doc, headers, rows, startY, options = {}) {
-  const { colWidths, rowHeight = 8, headerBg = [45, 55, 72], fontSize = 9 } = options
+  const { colWidths, rowHeight = 8, headerBg = C.BLACK, fontSize = 9 } = options
   const widths = colWidths || headers.map(() => TABLE_W / headers.length)
   let y = startY
 
@@ -44,12 +45,12 @@ function drawTable(doc, headers, rows, startY, options = {}) {
   // Data rows
   doc.setFontSize(fontSize)
   rows.forEach((row, rowIndex) => {
-    const bg = rowIndex % 2 === 0 ? [255, 255, 255] : [247, 250, 252]
+    const bg = rowIndex % 2 === 0 ? [255, 255, 255] : [250, 245, 245]
     doc.setFillColor(...bg)
     doc.rect(MARGIN, y, TABLE_W, rowHeight, 'F')
     doc.setDrawColor(226, 232, 240)
     doc.rect(MARGIN, y, TABLE_W, rowHeight, 'S')
-    doc.setTextColor(26, 32, 44)
+    doc.setTextColor(26, 26, 26)
     doc.setFont('helvetica', 'normal')
     x = MARGIN
     row.forEach((cell, i) => {
@@ -62,16 +63,20 @@ function drawTable(doc, headers, rows, startY, options = {}) {
 }
 
 function addHeader(doc) {
+  // Logo pequeño
+  doc.addImage(logoUrl, 'PNG', MARGIN, 4, 16, 16)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(C.TEXT)
-  doc.text('GUARDIUM', MARGIN, 14)
+  doc.text('GUARDIUM', MARGIN + 18, 12)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(C.SUBTLE)
-  doc.text('Seguridad Privada', MARGIN + 28, 14)
-  doc.setDrawColor(C.LINE)
-  doc.line(MARGIN, 18, pageW(doc) - MARGIN, 18)
+  doc.text('Seguridad Privada', MARGIN + 18, 17)
+  doc.setDrawColor(...C.LINE_RGB)
+  doc.setLineWidth(0.5)
+  doc.line(MARGIN, 22, pageW(doc) - MARGIN, 22)
+  doc.setLineWidth(0.2)
 }
 
 function addFooter(doc, proposalNum) {
@@ -80,8 +85,10 @@ function addFooter(doc, proposalNum) {
   const totalPages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
-    doc.setDrawColor(C.LINE)
+    doc.setDrawColor(...C.RED)
+    doc.setLineWidth(0.5)
     doc.line(MARGIN, h - 16, w - MARGIN, h - 16)
+    doc.setLineWidth(0.2)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
     doc.setTextColor(C.SUBTLE)
@@ -91,32 +98,19 @@ function addFooter(doc, proposalNum) {
 }
 
 function sectionHeader(doc, y, num, title) {
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
-  doc.setTextColor(C.SUBTLE)
+  doc.setTextColor(...C.RED)
   doc.text(`SECCION ${num}`, MARGIN, y)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
   doc.setTextColor(C.TEXT)
   doc.text(title, MARGIN, y + 10)
-  doc.setDrawColor(C.RED)
+  doc.setDrawColor(...C.RED)
   doc.setLineWidth(0.8)
   doc.line(MARGIN, y + 14, MARGIN + 40, y + 14)
   doc.setLineWidth(0.2)
   return y + 22
-}
-
-function drawShield(doc, cx, cy, size) {
-  doc.setFillColor(C.WHITE)
-  doc.setDrawColor(C.WHITE)
-  const s = size
-  doc.roundedRect(cx - s / 2, cy - s / 2, s, s * 0.7, 3, 3, 'F')
-  // Bottom point via small rect (triangle not always available)
-  doc.roundedRect(cx - s / 4, cy + s * 0.1, s / 2, s * 0.3, 2, 2, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(size * 0.6)
-  doc.setTextColor(C.HEADER_BG)
-  doc.text('G', cx, cy + 2, { align: 'center' })
 }
 
 // ═══════════════════════════════════════
@@ -127,27 +121,21 @@ function renderPortada(doc, proposal) {
   const h = pageH(doc)
   const splitX = w * 0.6
 
-  // Right column: dark background with shield
-  doc.setFillColor(C.HEADER_BG)
+  // Right column: dark background with logo
+  doc.setFillColor(...C.BLACK)
   doc.rect(splitX, 0, w - splitX, h, 'F')
-  drawShield(doc, splitX + (w - splitX) / 2, h * 0.4, 50)
+  const logoCx = splitX + (w - splitX) / 2
+  doc.addImage(logoUrl, 'PNG', logoCx - 25, h * 0.35, 50, 50)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(14)
   doc.setTextColor(C.WHITE)
-  doc.text('GUARDIUM', splitX + (w - splitX) / 2, h * 0.4 + 40, { align: 'center' })
+  doc.text('GUARDIUM', logoCx, h * 0.35 + 60, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
-  doc.text('Seguridad Privada', splitX + (w - splitX) / 2, h * 0.4 + 48, { align: 'center' })
+  doc.text('Seguridad Privada', logoCx, h * 0.35 + 68, { align: 'center' })
 
-  // Left column
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(12)
-  doc.setTextColor(C.TEXT)
-  doc.text('GUARDIUM', MARGIN, 35)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(C.SUBTLE)
-  doc.text('Seguridad Privada', MARGIN, 42)
+  // Left column — logo
+  doc.addImage(logoUrl, 'PNG', MARGIN, 20, 30, 30)
 
   // Title
   const titleY = 110
@@ -163,7 +151,7 @@ function renderPortada(doc, proposal) {
   doc.setTextColor(C.SUBTLE)
   doc.text('Propuesta Comercial de Servicios', MARGIN, afterTitle + 5)
 
-  doc.setDrawColor(C.RED)
+  doc.setDrawColor(...C.RED)
   doc.setLineWidth(1)
   doc.line(MARGIN, afterTitle + 12, MARGIN + 50, afterTitle + 12)
   doc.setLineWidth(0.2)
@@ -199,7 +187,7 @@ function renderPortada(doc, proposal) {
 // ═══════════════════════════════════════
 function renderPresentacion(doc) {
   addHeader(doc)
-  let y = sectionHeader(doc, 28, '1', 'Presentacion de GUARDIUM')
+  let y = sectionHeader(doc, 30, '1', 'Presentacion de GUARDIUM')
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
@@ -232,10 +220,10 @@ function renderPresentacion(doc) {
     const cx = MARGIN + col * (cardW + 8)
     const cy = y + row * (cardH + 8)
 
-    doc.setFillColor(C.CARD_BG)
+    doc.setFillColor(...C.CARD_BG)
     doc.roundedRect(cx, cy, cardW, cardH, 3, 3, 'F')
 
-    doc.setFillColor(C.HEADER_BG)
+    doc.setFillColor(...C.BLACK)
     doc.circle(cx + 12, cy + 12, 6, 'F')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10)
@@ -256,23 +244,23 @@ function renderPresentacion(doc) {
 }
 
 // ═══════════════════════════════════════
-// PAGE 3: DETALLE DEL SERVICIO
+// PAGE 3: DETALLE DEL SERVICIO (sin precios)
 // ═══════════════════════════════════════
 function renderDetalleServicio(doc, costData) {
   addHeader(doc)
-  let y = sectionHeader(doc, 28, '2', 'Detalle del Servicio Contratado')
+  let y = sectionHeader(doc, 30, '2', 'Detalle del Servicio Contratado')
 
   const sections = []
 
   const guards = Number(costData.num_guards) || 0
-  const salary = Number(costData.monthly_salary) || 0
   if (guards > 0) {
     sections.push({
       title: 'Personal de Seguridad',
       items: [
-        `${guards} guardia${guards > 1 ? 's' : ''} de seguridad`,
-        `Salario mensual por guardia: Bs. ${fmt(salary)}`,
-        `Costo mensual total personal: Bs. ${fmt(guards * salary)}`,
+        `${guards} guardia${guards > 1 ? 's' : ''} de seguridad profesionales`,
+        'Turnos de 12 horas con cobertura los 30 dias del mes',
+        'Relevos garantizados sin interrupcion del servicio',
+        'Reporte digital con fotografia al inicio y fin de cada turno',
       ],
     })
   }
@@ -280,28 +268,23 @@ function renderDetalleServicio(doc, costData) {
   const equipItems = []
   if (costData.cell_enabled) {
     const qty = Number(costData.cell_qty) || 0
-    const cost = Number(costData.cell_cost) || 0
-    if (qty > 0) equipItems.push(`${qty} celular${qty > 1 ? 'es' : ''} - Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
+    if (qty > 0) equipItems.push(`${qty} celular${qty > 1 ? 'es' : ''} para comunicacion operativa`)
   }
   if (costData.tablet_enabled) {
     const qty = Number(costData.tablet_qty) || 0
-    const cost = Number(costData.tablet_cost) || 0
-    if (qty > 0) equipItems.push(`${qty} tablet${qty > 1 ? 's' : ''} - Bs. ${fmt(cost)} c/u (Total: Bs. ${fmt(qty * cost)})`)
+    if (qty > 0) equipItems.push(`${qty} tablet${qty > 1 ? 's' : ''} para registro digital de turnos`)
   }
   if (equipItems.length > 0) {
     sections.push({ title: 'Equipamiento Tecnologico', items: equipItems })
   }
 
-  const uniformCost = Number(costData.uniform_cost_per_set) || 0
   const uniformChanges = Number(costData.uniform_changes_per_year) || 0
-  if (uniformCost > 0 && guards > 0) {
+  if ((Number(costData.uniform_cost_per_set) || 0) > 0 && guards > 0) {
     sections.push({
       title: 'Uniformes',
       items: [
-        `${guards} juego${guards > 1 ? 's' : ''} de uniforme`,
-        `Costo por juego: Bs. ${fmt(uniformCost)}`,
-        `${uniformChanges} cambio${uniformChanges > 1 ? 's' : ''} por ano`,
-        `Total anual: Bs. ${fmt(guards * uniformCost * uniformChanges)} (mensual: Bs. ${fmt(guards * uniformCost * uniformChanges / 12)})`,
+        'Uniformes completos para cada guardia',
+        `${uniformChanges} cambio${uniformChanges > 1 ? 's' : ''} de uniforme por ano`,
       ],
     })
   }
@@ -310,22 +293,22 @@ function renderDetalleServicio(doc, costData) {
   if (implementos.length > 0) {
     sections.push({
       title: 'Implementos',
-      items: implementos.map(it => `${it.description || 'Item'} - Bs. ${fmt(it.global_price)} (mensual: Bs. ${fmt(Number(it.global_price || 0) / 12)})`),
+      items: implementos.map(it => it.description || 'Item de seguridad'),
     })
   }
 
   const otros = costData.otros || []
   if (otros.length > 0) {
     sections.push({
-      title: 'Otros Costos',
-      items: otros.map(it => `${it.description || 'Item'} - Bs. ${fmt(it.amount)} (${it.frequency || 'mensual'})`),
+      title: 'Otros Servicios',
+      items: otros.map(it => it.description || 'Servicio adicional'),
     })
   }
 
   sections.forEach((sec, idx) => {
-    if (y > 250) { doc.addPage(); addHeader(doc); y = 28 }
+    if (y > 250) { doc.addPage(); addHeader(doc); y = 30 }
 
-    doc.setFillColor(C.HEADER_BG)
+    doc.setFillColor(...C.BLACK)
     doc.circle(MARGIN + 5, y + 1, 5, 'F')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
@@ -356,10 +339,10 @@ function renderDetalleServicio(doc, costData) {
 // ═══════════════════════════════════════
 function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   addHeader(doc)
-  let y = sectionHeader(doc, 28, '3', 'Propuesta Economica')
+  let y = sectionHeader(doc, 30, '3', 'Propuesta Economica')
 
   // Data box
-  doc.setFillColor(C.CARD_BG)
+  doc.setFillColor(...C.CARD_BG)
   doc.roundedRect(MARGIN, y, TABLE_W, 36, 3, 3, 'F')
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
@@ -442,7 +425,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   doc.rect(MARGIN, y, TABLE_W, 8, 'F')
   doc.setDrawColor(226, 232, 240)
   doc.rect(MARGIN, y, TABLE_W, 8, 'S')
-  doc.setTextColor(26, 32, 44)
+  doc.setTextColor(26, 26, 26)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
   doc.text('Subtotal costos directos', MARGIN + 2, y + 5.5)
@@ -459,8 +442,8 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   doc.text(`Bs. ${fmt(marginAmt)}`, MARGIN + TABLE_W - 2, y + 5.5, { align: 'right' })
   y += 8
 
-  // TOTAL MENSUAL — dark
-  doc.setFillColor(45, 55, 72)
+  // TOTAL MENSUAL — negro GUARDIUM
+  doc.setFillColor(...C.BLACK)
   doc.rect(MARGIN, y, TABLE_W, 10, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
@@ -469,8 +452,8 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   doc.text(`Bs. ${fmt(totalMonthly)}`, MARGIN + TABLE_W - 4, y + 7, { align: 'right' })
   y += 10
 
-  // TOTAL ANUAL — red
-  doc.setFillColor(192, 32, 42)
+  // TOTAL ANUAL — rojo GUARDIUM
+  doc.setFillColor(...C.RED)
   doc.rect(MARGIN, y, TABLE_W, 10, 'F')
   doc.setTextColor(255, 255, 255)
   doc.text('TOTAL ANUAL', MARGIN + 4, y + 7)
@@ -491,7 +474,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
 // ═══════════════════════════════════════
 function renderTerminos(doc, proposal) {
   addHeader(doc)
-  let y = sectionHeader(doc, 28, '4', 'Terminos y Condiciones')
+  let y = sectionHeader(doc, 30, '4', 'Terminos y Condiciones')
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
@@ -510,12 +493,12 @@ function renderTerminos(doc, proposal) {
   ]
 
   clauses.forEach((clause, i) => {
-    if (y > 230) { doc.addPage(); addHeader(doc); y = 28 }
+    if (y > 230) { doc.addPage(); addHeader(doc); y = 30 }
 
-    doc.setFillColor(C.CARD_BG)
+    doc.setFillColor(...C.CARD_BG)
     doc.roundedRect(MARGIN, y, contentW(), 18, 2, 2, 'F')
 
-    doc.setFillColor(C.HEADER_BG)
+    doc.setFillColor(...C.RED)
     doc.circle(MARGIN + 8, y + 6, 4, 'F')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
@@ -538,8 +521,8 @@ function renderTerminos(doc, proposal) {
 
   y += 6
 
-  // Responsibilities table (manual)
-  if (y > 200) { doc.addPage(); addHeader(doc); y = 28 }
+  // Responsibilities table
+  if (y > 200) { doc.addPage(); addHeader(doc); y = 30 }
 
   y = drawTable(doc,
     ['Responsabilidades GUARDIUM', 'Responsabilidades del Cliente'],
@@ -556,7 +539,7 @@ function renderTerminos(doc, proposal) {
   y += 12
 
   // Signatures
-  if (y > 230) { doc.addPage(); addHeader(doc); y = 28 }
+  if (y > 230) { doc.addPage(); addHeader(doc); y = 30 }
 
   const sigW = (contentW() - 20) / 2
 
