@@ -27,6 +27,7 @@ function t(str) {
     .replace(/ó/g, 'o').replace(/Ó/g, 'O')
     .replace(/ú/g, 'u').replace(/Ú/g, 'U')
     .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+    .replace(/¿/g, '').replace(/¡/g, '')
 }
 
 // ═══════════════════════════════════════
@@ -118,8 +119,8 @@ function addFooter(doc, proposalNum) {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
     doc.setTextColor(C.SUBTLE)
-    doc.text(`GUARDIUM Seguridad Privada | Confidencial | ${proposalNum}`, MARGIN, h - 10)
-    doc.text(`Pagina ${i} de ${totalPages}`, w - MARGIN, h - 10, { align: 'right' })
+    doc.text(t(`GUARDIUM Seguridad Privada | Confidencial | ${proposalNum}`), MARGIN, h - 10)
+    doc.text(t(`Pagina ${i} de ${totalPages}`), w - MARGIN, h - 10, { align: 'right' })
   }
 }
 
@@ -127,11 +128,11 @@ function sectionHeader(doc, y, num, title) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
   doc.setTextColor(...C.RED)
-  doc.text(`SECCION ${num}`, MARGIN, y)
+  doc.text(t(`SECCION ${num}`), MARGIN, y)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
   doc.setTextColor(C.TEXT)
-  doc.text(title, MARGIN, y + 10)
+  doc.text(t(title), MARGIN, y + 10)
   doc.setDrawColor(...C.RED)
   doc.setLineWidth(0.8)
   doc.line(MARGIN, y + 14, MARGIN + 40, y + 14)
