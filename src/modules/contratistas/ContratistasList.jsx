@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
@@ -16,6 +17,10 @@ function getPermitStatus(validUntil) {
 
 export default function ContratistasList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [contractors, setContractors] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -28,6 +33,7 @@ export default function ContratistasList() {
 
   async function loadContractors() {
     let q = supabase.from('contractors').select('*').order('entry_time', { ascending: false })
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
     if (searchCI.trim()) q = q.ilike('ci', `%${searchCI.trim()}%`)
     const { data } = await q
     setContractors(data || [])

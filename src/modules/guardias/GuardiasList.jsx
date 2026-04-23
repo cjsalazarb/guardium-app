@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
@@ -10,14 +10,16 @@ export default function GuardiasList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
 
-  useEffect(() => { loadGuards() }, [])
+  useEffect(() => { loadGuards() }, [routeContractId])
 
   async function loadGuards() {
-    const { data, error: dbErr } = await supabase
-      .from('guards')
-      .select('*, contract:contracts(client_name)')
-      .order('full_name')
+    let query = supabase.from('guards').select('*, contract:contracts(client_name)').order('full_name')
+    if (routeContractId && isAdminContrato) query = query.eq('contract_id', routeContractId)
+    const { data, error: dbErr } = await query
     if (dbErr) { setError('Error al cargar guardias. Intente de nuevo.'); setLoading(false); return }
     setGuards(data || [])
     setLoading(false)

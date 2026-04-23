@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
@@ -33,6 +34,10 @@ function daysOverdue(dueDate) {
 
 export default function FacturacionList() {
   const { role } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [invoices, setInvoices] = useState([])
   const [contracts, setContracts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +71,8 @@ export default function FacturacionList() {
     if (filterMonth) q = q.eq('period_month', Number(filterMonth))
     if (filterYear) q = q.eq('period_year', Number(filterYear))
     if (filterStatus) q = q.eq('status', filterStatus)
-    if (filterContract) q = q.eq('contract_id', filterContract)
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    else if (filterContract) q = q.eq('contract_id', filterContract)
     const { data, error: dbErr } = await q
     if (dbErr) { setError('Error al cargar facturas. Intente de nuevo.'); setLoading(false); return }
     setInvoices(data || [])

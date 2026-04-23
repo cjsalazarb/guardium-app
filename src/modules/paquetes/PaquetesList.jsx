@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
@@ -12,6 +13,10 @@ const STATUS_COLORS = {
 
 export default function PaquetesList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -20,7 +25,9 @@ export default function PaquetesList() {
   useEffect(() => { loadPackages() }, [])
 
   async function loadPackages() {
-    const { data } = await supabase.from('packages').select('*').order('received_at', { ascending: false })
+    let q = supabase.from('packages').select('*').order('received_at', { ascending: false })
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    const { data } = await q
     setPackages(data || [])
     setLoading(false)
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
@@ -6,6 +7,10 @@ import { useAuth } from '../../lib/auth'
 
 export default function NovedadesList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [entries, setEntries] = useState([])
   const [contracts, setContracts] = useState([])
   const [guards, setGuards] = useState([])
@@ -31,7 +36,8 @@ export default function NovedadesList() {
 
   async function loadEntries() {
     let q = supabase.from('log_entries').select('*, contract:contracts(client_name)').order('created_at', { ascending: false })
-    if (filterContract) q = q.eq('contract_id', filterContract)
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    else if (filterContract) q = q.eq('contract_id', filterContract)
     if (filterGuard) q = q.eq('guard_name', filterGuard)
     if (filterDate) {
       q = q.gte('created_at', filterDate + 'T00:00:00')

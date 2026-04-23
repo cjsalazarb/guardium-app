@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
@@ -6,6 +7,10 @@ import { useAuth } from '../../lib/auth'
 
 export default function VehiculosList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [vehicles, setVehicles] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -16,6 +21,7 @@ export default function VehiculosList() {
 
   async function loadVehicles() {
     let q = supabase.from('vehicles').select('*').order('entry_time', { ascending: false })
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
     if (searchPlate.trim()) q = q.ilike('plate', `%${searchPlate.trim()}%`)
     const { data } = await q
     setVehicles(data || [])

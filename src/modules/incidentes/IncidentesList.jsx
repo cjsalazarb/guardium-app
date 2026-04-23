@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
@@ -17,6 +18,10 @@ const STATUS_LABELS = { abierto: 'Abierto', en_revision: 'En revision', cerrado:
 
 export default function IncidentesList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [incidents, setIncidents] = useState([])
   const [contracts, setContracts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -41,7 +46,8 @@ export default function IncidentesList() {
 
   async function loadIncidents() {
     let q = supabase.from('incidents').select('*, contract:contracts(client_name)').order('created_at', { ascending: false })
-    if (filterContract) q = q.eq('contract_id', filterContract)
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    else if (filterContract) q = q.eq('contract_id', filterContract)
     if (filterSeverity) q = q.eq('severity', filterSeverity)
     if (filterStatus) q = q.eq('status', filterStatus)
     if (filterDate) {

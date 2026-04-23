@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
@@ -18,6 +19,9 @@ function getWeekDays(offset = 0) {
 }
 
 export default function TurnosList() {
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
   const [shifts, setShifts] = useState([])
   const [contracts, setContracts] = useState([])
   const [guards, setGuards] = useState([])
@@ -33,13 +37,17 @@ export default function TurnosList() {
   const weekStart = days[0].toISOString()
   const weekEnd = new Date(days[6].getTime() + 24 * 60 * 60 * 1000).toISOString()
 
-  useEffect(() => { loadData() }, [weekOffset, filterContract])
+  useEffect(() => { loadData() }, [weekOffset, filterContract, routeContractId])
 
   async function loadData() {
+    let shiftQ = supabase.from('shifts').select('*, guard:guards(full_name)').gte('start_time', weekStart).lte('start_time', weekEnd).order('start_time')
+    if (routeContractId && isAdminContrato) shiftQ = shiftQ.eq('contract_id', routeContractId)
+    let guardQ = supabase.from('guards').select('id, full_name, contract_id').eq('active', true)
+    if (routeContractId && isAdminContrato) guardQ = guardQ.eq('contract_id', routeContractId)
     const [s, c, g] = await Promise.all([
-      supabase.from('shifts').select('*, guard:guards(full_name)').gte('start_time', weekStart).lte('start_time', weekEnd).order('start_time'),
+      shiftQ,
       supabase.from('contracts').select('id, client_name').eq('status', 'activo'),
-      supabase.from('guards').select('id, full_name, contract_id').eq('active', true),
+      guardQ,
     ])
     if (s.error || c.error || g.error) { setError('Error al cargar datos. Intente de nuevo.'); return }
     let filtered = s.data || []

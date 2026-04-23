@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { T } from '../../styles/tokens'
@@ -6,6 +7,10 @@ import { useAuth } from '../../lib/auth'
 
 export default function VisitantesList() {
   const { contractId } = useAuth()
+  const { id: routeContractId } = useParams()
+  const location = useLocation()
+  const isAdminContrato = location.pathname.startsWith('/admin/contratos/')
+  const effectiveContractId = (isAdminContrato && routeContractId) ? routeContractId : null
   const [visitors, setVisitors] = useState([])
   const [contracts, setContracts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,7 +29,8 @@ export default function VisitantesList() {
 
   async function loadVisitors() {
     let q = supabase.from('visitors').select('*, contract:contracts(client_name)').order('entry_time', { ascending: false })
-    if (filterContract) q = q.eq('contract_id', filterContract)
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    else if (filterContract) q = q.eq('contract_id', filterContract)
     if (filterDate) {
       q = q.gte('entry_time', filterDate + 'T00:00:00')
       q = q.lte('entry_time', filterDate + 'T23:59:59')
