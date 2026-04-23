@@ -24,11 +24,15 @@ export default function PropuestaForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState({ ...defaultForm })
+  const [currentVersion, setCurrentVersion] = useState(1)
+  const [parentProposalId, setParentProposalId] = useState(null)
 
   useEffect(() => {
     if (isEdit) {
       supabase.from('proposals').select('*').eq('id', id).single().then(({ data }) => {
         if (data) {
+          setCurrentVersion(data.version || 1)
+          setParentProposalId(data.parent_proposal_id || null)
           setForm({
             client_name: data.client_name || '',
             client_contact: data.client_contact || '',
@@ -123,16 +127,40 @@ export default function PropuestaForm() {
       total_amount: calcs.totalMonthly,
     }
     try {
-      let dbErr
       if (isEdit) {
-        const r = await supabase.from('proposals').update(payload).eq('id', id)
-        dbErr = r.error
+        // Crear nueva versión en vez de sobreescribir
+        const rootId = parentProposalId || id
+        const newVersion = currentVersion + 1
+
+        // Marcar versión actual como no-latest
+        const { error: updateErr } = await supabase
+          .from('proposals')
+          .update({ is_latest: false })
+          .eq('id', id)
+        if (updateErr) throw updateErr
+
+        // Crear nueva versión
+        const { data: newProposal, error: insertErr } = await supabase
+          .from('proposals')
+          .insert({
+            ...payload,
+            version: newVersion,
+            parent_proposal_id: rootId,
+            is_latest: true,
+          })
+          .select()
+          .single()
+        if (insertErr) throw insertErr
+
+        navigate('/propuestas')
       } else {
-        const r = await supabase.from('proposals').insert(payload)
-        dbErr = r.error
+        // Crear propuesta nueva (v1)
+        const { error: dbErr } = await supabase
+          .from('proposals')
+          .insert({ ...payload, version: 1, is_latest: true })
+        if (dbErr) throw dbErr
+        navigate('/propuestas')
       }
-      if (dbErr) throw dbErr
-      navigate('/propuestas')
     } catch (err) {
       console.error('Error guardando propuesta:', err)
       setError('Error al guardar propuesta: ' + (err.message || 'Intente de nuevo.'))
@@ -197,7 +225,7 @@ export default function PropuestaForm() {
   return (
     <Layout>
       <h1 style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: T.TEXT, margin: '0 0 24px' }}>
-        {isEdit ? 'EDITAR PROPUESTA' : 'NUEVA PROPUESTA'}
+        {isEdit ? `EDITAR PROPUESTA (v${currentVersion})` : 'NUEVA PROPUESTA'}
       </h1>
 
       {/* ==================== SECTION 1: CLIENT DATA ==================== */}

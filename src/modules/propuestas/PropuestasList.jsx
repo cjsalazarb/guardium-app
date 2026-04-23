@@ -27,20 +27,130 @@ export default function PropuestasList() {
   const [proposals, setProposals] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [expanded, setExpanded] = useState({})
+  const [history, setHistory] = useState({})
   const navigate = useNavigate()
 
-  useEffect(() => {
-    loadProposals()
-  }, [])
+  useEffect(() => { loadProposals() }, [])
 
   async function loadProposals() {
     const { data, error: dbErr } = await supabase
       .from('proposals')
       .select('*')
+      .or('is_latest.eq.true,is_latest.is.null')
       .order('created_at', { ascending: false })
     if (dbErr) { setError('Error al cargar propuestas. Intente de nuevo.'); setLoading(false); return }
     setProposals(data || [])
     setLoading(false)
+  }
+
+  async function toggleHistory(p) {
+    const rootId = p.parent_proposal_id || p.id
+    if (expanded[rootId]) {
+      setExpanded(prev => ({ ...prev, [rootId]: false }))
+      return
+    }
+    // Cargar versiones anteriores
+    const { data } = await supabase
+      .from('proposals')
+      .select('*')
+      .or(`parent_proposal_id.eq.${rootId},id.eq.${rootId}`)
+      .neq('id', p.id)
+      .order('version', { ascending: false })
+    setHistory(prev => ({ ...prev, [rootId]: data || [] }))
+    setExpanded(prev => ({ ...prev, [rootId]: true }))
+  }
+
+  function renderRow(p, { isHistory = false } = {}) {
+    const rootId = p.parent_proposal_id || p.id
+    const hasVersions = (p.version || 1) > 1 || p.parent_proposal_id
+    const isExpanded = expanded[rootId]
+
+    return (
+      <tr
+        key={p.id}
+        style={{
+          borderBottom: `1px solid ${T.BORDER}`,
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+          background: isHistory ? '#F9FAFB' : 'transparent',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = isHistory ? '#F0F2F5' : T.BG}
+        onMouseLeave={e => e.currentTarget.style.background = isHistory ? '#F9FAFB' : 'transparent'}
+        onClick={() => navigate(`/propuestas/${p.id}`)}
+      >
+        <td style={{ padding: '14px 16px', fontWeight: 600, color: T.TEXT }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!isHistory && hasVersions && (
+              <button
+                onClick={e => { e.stopPropagation(); toggleHistory(p) }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 14, padding: 0, color: T.TEXT_MUTED, lineHeight: 1,
+                }}
+              >
+                {isExpanded ? '\u25BC' : '\u25B6'}
+              </button>
+            )}
+            {isHistory && <span style={{ color: T.TEXT_MUTED, marginLeft: 22 }}>\u21B3</span>}
+            {p.client_name}
+          </span>
+        </td>
+        <td style={{ padding: '14px 16px', color: T.TEXT }}>{p.title || '\u2014'}</td>
+        <td style={{ padding: '14px 16px' }}>
+          {p.is_latest ? (
+            <span style={{
+              padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+              background: T.SUCCESS_BG, color: T.SUCCESS,
+            }}>
+              v{p.version || 1} Ultima
+            </span>
+          ) : (
+            <span style={{
+              padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+              background: T.MUTED_BG, color: T.MUTED,
+            }}>
+              v{p.version || 1}
+            </span>
+          )}
+        </td>
+        <td style={{ padding: '14px 16px', color: T.TEXT_MUTED, fontSize: 13 }}>
+          {p.created_at ? new Date(p.created_at).toLocaleDateString() : '\u2014'}
+        </td>
+        <td style={{ padding: '14px 16px', fontWeight: 600 }}>
+          Bs. {p.total_amount ? Number(p.total_amount).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '\u2014'}
+        </td>
+        <td style={{ padding: '14px 16px' }}>
+          <span style={{
+            padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+            background: statusColors[p.status]?.bg || T.MUTED_BG,
+            color: statusColors[p.status]?.color || T.MUTED,
+          }}>
+            {statusLabels[p.status] || p.status}
+          </span>
+        </td>
+        <td style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+            {(p.is_latest || p.is_latest === null) && (
+              <button
+                onClick={() => navigate(`/propuestas/${p.id}/editar`)}
+                style={{ padding: '6px 12px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: 13, color: T.TEXT }}
+              >
+                Editar
+              </button>
+            )}
+            {isHistory && (
+              <button
+                onClick={() => navigate(`/propuestas/${p.id}`)}
+                style={{ padding: '6px 12px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: 13, color: T.TEXT }}
+              >
+                Ver
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    )
   }
 
   return (
@@ -71,50 +181,20 @@ export default function PropuestasList() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.FONT_BODY }}>
             <thead>
               <tr style={{ background: T.BG, borderBottom: `1px solid ${T.BORDER}` }}>
-                {['Cliente', 'Titulo', 'Fecha', 'Valida hasta', 'Total (Bs.)', 'Estado', 'Acciones'].map(h => (
+                {['Cliente', 'Titulo', 'Version', 'Fecha', 'Total (Bs.)', 'Estado', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: T.TEXT_MUTED, fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {proposals.map(p => (
-                <tr
-                  key={p.id}
-                  style={{ borderBottom: `1px solid ${T.BORDER}`, cursor: 'pointer', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.BG}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  onClick={() => navigate(`/propuestas/${p.id}`)}
-                >
-                  <td style={{ padding: '14px 16px', fontWeight: 600, color: T.TEXT }}>{p.client_name}</td>
-                  <td style={{ padding: '14px 16px', color: T.TEXT }}>{p.title || '—'}</td>
-                  <td style={{ padding: '14px 16px', color: T.TEXT_MUTED, fontSize: 13 }}>
-                    {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td style={{ padding: '14px 16px', color: T.TEXT_MUTED, fontSize: 13 }}>
-                    {p.valid_until ? new Date(p.valid_until).toLocaleDateString() : '—'}
-                  </td>
-                  <td style={{ padding: '14px 16px', fontWeight: 600 }}>
-                    Bs. {p.total_amount ? Number(p.total_amount).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '—'}
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{
-                      padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                      background: statusColors[p.status]?.bg || T.MUTED_BG,
-                      color: statusColors[p.status]?.color || T.MUTED,
-                    }}>
-                      {statusLabels[p.status] || p.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <button
-                      onClick={e => { e.stopPropagation(); navigate(`/propuestas/${p.id}/editar`) }}
-                      style={{ padding: '6px 12px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: 13, color: T.TEXT }}
-                    >
-                      Editar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {proposals.map(p => {
+                const rootId = p.parent_proposal_id || p.id
+                const rows = [renderRow(p)]
+                if (expanded[rootId] && history[rootId]) {
+                  history[rootId].forEach(h => rows.push(renderRow(h, { isHistory: true })))
+                }
+                return rows
+              })}
             </tbody>
           </table>
         )}
