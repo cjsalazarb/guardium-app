@@ -126,16 +126,6 @@ function renderPortada(doc, proposal) {
   doc.rect(splitX, 0, w - splitX, h, 'F')
   const logoCx = splitX + (w - splitX) / 2
   doc.addImage(logoUrl, 'PNG', logoCx - 25, h * 0.35, 50, 50)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(C.WHITE)
-  doc.text('GUARDIUM', logoCx, h * 0.35 + 60, { align: 'center' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text('Seguridad Privada', logoCx, h * 0.35 + 68, { align: 'center' })
-
-  // Left column — logo
-  doc.addImage(logoUrl, 'PNG', MARGIN, 20, 30, 30)
 
   // Title
   const titleY = 110
@@ -366,81 +356,21 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
 
   y += 42
 
-  // Build table rows from cost_data
-  const rows = []
-  let rowNum = 0
-  const guards = Number(costData.num_guards) || 0
-  const salary = Number(costData.monthly_salary) || 0
-
-  if (guards > 0) {
-    rowNum++
-    rows.push([String(rowNum), 'Personal de seguridad', String(guards), `Bs. ${fmt(salary)}`, `Bs. ${fmt(guards * salary)}`])
-  }
-
-  const cellTotal = costData.cell_enabled ? (Number(costData.cell_qty) || 0) * (Number(costData.cell_cost) || 0) : 0
-  const tabletTotal = costData.tablet_enabled ? (Number(costData.tablet_qty) || 0) * (Number(costData.tablet_cost) || 0) : 0
-  const equipMonthly = (cellTotal + tabletTotal) / 12
-  if (equipMonthly > 0) {
-    rowNum++
-    rows.push([String(rowNum), 'Equipamiento tecnologico', '-', '-', `Bs. ${fmt(equipMonthly)}`])
-  }
-
-  const uniformMonthly = guards * (Number(costData.uniform_cost_per_set) || 0) * (Number(costData.uniform_changes_per_year) || 0) / 12
-  if (uniformMonthly > 0) {
-    rowNum++
-    rows.push([String(rowNum), 'Uniformes', String(guards), `Bs. ${fmt(Number(costData.uniform_cost_per_set) || 0)}`, `Bs. ${fmt(uniformMonthly)}`])
-  }
-
-  const implementos = costData.implementos || []
-  const implementoMonthly = implementos.reduce((s, it) => s + (Number(it.global_price) || 0), 0) / 12
-  if (implementoMonthly > 0) {
-    rowNum++
-    rows.push([String(rowNum), 'Implementos', String(implementos.length), '-', `Bs. ${fmt(implementoMonthly)}`])
-  }
-
-  const otros = costData.otros || []
-  const otrosMonthly = otros.reduce((s, it) => {
-    const amt = Number(it.amount) || 0
-    if (it.frequency === 'mensual') return s + amt
-    return s + amt / 12
-  }, 0)
-  if (otrosMonthly > 0) {
-    rowNum++
-    rows.push([String(rowNum), 'Otros costos', String(otros.length), '-', `Bs. ${fmt(otrosMonthly)}`])
-  }
-
-  // Draw quotation table
-  const colWidths = [12, 78, 17, 32, 31]
-  y = drawTable(doc, ['N.', 'Descripcion del Servicio', 'Cant.', 'Precio Unit. Bs.', 'Total Mensual Bs.'], rows, y, { colWidths })
-
-  // Totals
-  const subtotal = calcs.subtotal
-  const marginPct = Number(costData.admin_margin_pct) || 0
-  const marginAmt = calcs.marginAmount
+  // Single row: precio unitario todo incluido por guardia
   const totalMonthly = calcs.totalMonthly
   const totalAnnual = calcs.totalAnnual
+  const numGuardias = Number(costData.num_guards) || 1
+  const precioUnitario = totalMonthly / numGuardias
 
-  // Subtotal row
-  doc.setFillColor(241, 245, 249)
-  doc.rect(MARGIN, y, TABLE_W, 8, 'F')
-  doc.setDrawColor(226, 232, 240)
-  doc.rect(MARGIN, y, TABLE_W, 8, 'S')
-  doc.setTextColor(26, 26, 26)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.text('Subtotal costos directos', MARGIN + 2, y + 5.5)
-  doc.text(`Bs. ${fmt(subtotal)}`, MARGIN + TABLE_W - 2, y + 5.5, { align: 'right' })
-  y += 8
-
-  // Margin row
-  doc.setFillColor(241, 245, 249)
-  doc.rect(MARGIN, y, TABLE_W, 8, 'F')
-  doc.setDrawColor(226, 232, 240)
-  doc.rect(MARGIN, y, TABLE_W, 8, 'S')
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Margen administrativo (${marginPct}%)`, MARGIN + 2, y + 5.5)
-  doc.text(`Bs. ${fmt(marginAmt)}`, MARGIN + TABLE_W - 2, y + 5.5, { align: 'right' })
-  y += 8
+  const colWidths = [12, 78, 17, 32, 31]
+  const itemRows = [[
+    '1',
+    'Servicio de Guardia de Seguridad Integral (Incluye: personal, uniformes, implementos y gestion digital)',
+    String(numGuardias),
+    `Bs. ${fmt(precioUnitario)}`,
+    `Bs. ${fmt(totalMonthly)}`,
+  ]]
+  y = drawTable(doc, ['N.', 'Descripcion del Servicio', 'Cant.', 'Precio Unit. Bs.', 'Total Mensual Bs.'], itemRows, y, { colWidths })
 
   // TOTAL MENSUAL — negro GUARDIUM
   doc.setFillColor(...C.BLACK)
