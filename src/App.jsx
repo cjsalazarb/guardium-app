@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminDashboardLegacy from './pages/AdminDashboard'
+import AdminDashboard from './modules/admin/AdminDashboard'
+import AdminContratoDetalle from './modules/admin/AdminContratoDetalle'
 import Unauthorized from './pages/Unauthorized'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -43,10 +45,22 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* Admin Dashboard */}
-        <Route path="/contrato/:contractId/dashboard" element={
+        {/* Admin — new flow */}
+        <Route path="/admin/dashboard" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/contratos/:id" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminContratoDetalle />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Dashboard (legacy) */}
+        <Route path="/contrato/:contractId/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboardLegacy />
           </ProtectedRoute>
         } />
 

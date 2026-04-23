@@ -28,10 +28,15 @@ const bottomItems = [
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { role, signOut } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
 
   const isActive = (path) => path && location.pathname.startsWith(path)
+
+  // Admin sees their dashboard as home
+  const effectiveMenuItems = role === 'admin'
+    ? [{ icon: '\uD83C\uDFE0', label: 'Mis Contratos', path: '/admin/dashboard' }, ...menuItems.filter(m => m.path !== '/dashboard')]
+    : menuItems
 
   const handleClick = (item) => {
     if (item.action === 'signout') return signOut()
@@ -120,7 +125,7 @@ export default function Sidebar() {
 
       {/* Navigation modules */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 8px', gap: 2 }}>
-        {menuItems.map(renderItem)}
+        {effectiveMenuItems.map(renderItem)}
       </div>
 
       {/* Bottom items */}

@@ -27,7 +27,7 @@ export default function Login() {
           .single()
 
         if (profile?.role === 'superadmin') navigate('/dashboard')
-        else if (profile?.role === 'admin') navigate(`/contrato/${profile.contract_id}/dashboard`)
+        else if (profile?.role === 'admin') navigate('/admin/dashboard')
         else if (profile?.role === 'guardia') navigate('/tablet')
         else navigate('/dashboard')
       }
