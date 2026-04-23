@@ -73,6 +73,20 @@ export default function GuardiaForm() {
           contract_id: form.contract_id || null, photo_url, active: true,
         })
         if (guardError) throw guardError
+
+        // Send credentials email (non-blocking)
+        supabase.functions.invoke('send-credentials', {
+          body: {
+            to: form.email,
+            nombre: form.full_name,
+            password,
+            loginUrl: window.location.origin + '/login',
+          },
+        }).then(({ error: emailErr }) => {
+          if (emailErr) console.error('Error enviando email:', emailErr)
+          else console.log('Email de credenciales enviado a', form.email)
+        })
+
         setTempPassword(password)
         setSaving(false)
         return
