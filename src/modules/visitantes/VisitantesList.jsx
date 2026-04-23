@@ -20,7 +20,7 @@ export default function VisitantesList() {
   const [filterStatus, setFilterStatus] = useState('')
   const [form, setForm] = useState({ full_name: '', ci: '', reason: '', host_name: '' })
 
-  useEffect(() => { loadVisitors(); loadContracts() }, [filterContract, filterDate, filterStatus])
+  useEffect(() => { loadVisitors(); loadContracts() }, [filterContract, filterDate, filterStatus, effectiveContractId])
 
   async function loadContracts() {
     const { data } = await supabase.from('contracts').select('id, client_name').order('client_name')

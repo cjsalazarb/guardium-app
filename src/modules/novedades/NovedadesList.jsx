@@ -22,7 +22,7 @@ export default function NovedadesList() {
   const [searchText, setSearchText] = useState('')
   const [form, setForm] = useState({ content: '', guard_name: '', shift: '' })
 
-  useEffect(() => { loadEntries(); loadContracts(); loadGuards() }, [filterContract, filterGuard, filterDate, searchText])
+  useEffect(() => { loadEntries(); loadContracts(); loadGuards() }, [filterContract, filterGuard, filterDate, searchText, effectiveContractId])
 
   async function loadContracts() {
     const { data } = await supabase.from('contracts').select('id, client_name').order('client_name')

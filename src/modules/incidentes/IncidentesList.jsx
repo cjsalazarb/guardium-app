@@ -36,7 +36,7 @@ export default function IncidentesList() {
     title: '', description: '', severity: 'medio', guard_name: '', location: '',
   })
 
-  useEffect(() => { loadIncidents(); loadContracts() }, [filterContract, filterSeverity, filterStatus, filterDate])
+  useEffect(() => { loadIncidents(); loadContracts() }, [filterContract, filterSeverity, filterStatus, filterDate, effectiveContractId])
 
   async function loadContracts() {
     const { data, error: dbErr } = await supabase.from('contracts').select('id, client_name').order('client_name')

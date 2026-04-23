@@ -29,7 +29,7 @@ export default function ContratistasList() {
     full_name: '', company: '', ci: '', permit_type: 'obra', permit_valid_until: '',
   })
 
-  useEffect(() => { loadContractors() }, [searchCI])
+  useEffect(() => { loadContractors() }, [searchCI, effectiveContractId])
 
   async function loadContractors() {
     let q = supabase.from('contractors').select('*').order('entry_time', { ascending: false })

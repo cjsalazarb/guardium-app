@@ -22,7 +22,7 @@ export default function PaquetesList() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ recipient_name: '', sender: '', description: '' })
 
-  useEffect(() => { loadPackages() }, [])
+  useEffect(() => { loadPackages() }, [effectiveContractId])
 
   async function loadPackages() {
     let q = supabase.from('packages').select('*').order('received_at', { ascending: false })

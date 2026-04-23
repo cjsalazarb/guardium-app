@@ -58,7 +58,7 @@ export default function FacturacionList() {
   })
 
   useEffect(() => { loadContracts() }, [])
-  useEffect(() => { loadInvoices() }, [filterMonth, filterYear, filterStatus, filterContract])
+  useEffect(() => { loadInvoices() }, [filterMonth, filterYear, filterStatus, filterContract, effectiveContractId])
 
   async function loadContracts() {
     const { data, error: dbErr } = await supabase.from('contracts').select('id, client_name, monthly_amount').order('client_name')

@@ -17,7 +17,7 @@ export default function VehiculosList() {
   const [searchPlate, setSearchPlate] = useState('')
   const [form, setForm] = useState({ plate: '', type: 'sedan', brand: '', owner_name: '', notes: '' })
 
-  useEffect(() => { loadVehicles() }, [searchPlate])
+  useEffect(() => { loadVehicles() }, [searchPlate, effectiveContractId])
 
   async function loadVehicles() {
     let q = supabase.from('vehicles').select('*').order('entry_time', { ascending: false })
