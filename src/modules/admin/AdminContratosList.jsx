@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import { T } from '../../styles/tokens'
 
 export default function AdminContratosList() {
-  const { user, signOut } = useAuth()
+  const { user, role, signOut } = useAuth()
   const navigate = useNavigate()
   const [contracts, setContracts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,26 +33,9 @@ export default function AdminContratosList() {
     setLoading(false)
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: T.BG }}>
-      {/* Header — no sidebar */}
-      <div style={{ background: T.WHITE, borderBottom: `1px solid ${T.BORDER}`, padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg width="28" height="32" viewBox="0 0 36 40" fill="none">
-            <path d="M18 0L36 8V20C36 31.05 27.72 37.08 18 40C8.28 37.08 0 31.05 0 20V8L18 0Z" fill={T.RED} />
-            <path d="M18 4L32 10.5V20C32 29 25 34.5 18 37C11 34.5 4 29 4 20V10.5L18 4Z" fill={T.BLACK} />
-            <text x="18" y="25" textAnchor="middle" fill={T.RED} fontFamily="Bebas Neue" fontSize="14" fontWeight="bold">G</text>
-          </svg>
-          <span style={{ fontFamily: T.FONT_DISPLAY, fontSize: 20, color: T.TEXT, letterSpacing: '0.05em' }}>GUARDIUM</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontFamily: T.FONT_BODY, fontSize: 14, color: T.TEXT_MUTED }}>{user?.full_name || ''}</span>
-          <button onClick={signOut} style={{ padding: '6px 16px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: T.FONT_BODY, color: T.TEXT }}>Cerrar sesion</button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
+  const content = (
+    <>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: role === 'superadmin' ? 0 : '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
           <div>
             <h1 style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: T.TEXT, margin: 0 }}>MIS CONTRATOS</h1>
@@ -113,6 +97,31 @@ export default function AdminContratosList() {
           </div>
         )}
       </div>
+    </>
+  )
+
+  if (role === 'superadmin') {
+    return <Layout>{content}</Layout>
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: T.BG }}>
+      {/* Header for admin (no sidebar) */}
+      <div style={{ background: T.WHITE, borderBottom: `1px solid ${T.BORDER}`, padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg width="28" height="32" viewBox="0 0 36 40" fill="none">
+            <path d="M18 0L36 8V20C36 31.05 27.72 37.08 18 40C8.28 37.08 0 31.05 0 20V8L18 0Z" fill={T.RED} />
+            <path d="M18 4L32 10.5V20C32 29 25 34.5 18 37C11 34.5 4 29 4 20V10.5L18 4Z" fill={T.BLACK} />
+            <text x="18" y="25" textAnchor="middle" fill={T.RED} fontFamily="Bebas Neue" fontSize="14" fontWeight="bold">G</text>
+          </svg>
+          <span style={{ fontFamily: T.FONT_DISPLAY, fontSize: 20, color: T.TEXT, letterSpacing: '0.05em' }}>GUARDIUM</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontFamily: T.FONT_BODY, fontSize: 14, color: T.TEXT_MUTED }}>{user?.full_name || ''}</span>
+          <button onClick={signOut} style={{ padding: '6px 16px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: T.FONT_BODY, color: T.TEXT }}>Cerrar sesion</button>
+        </div>
+      </div>
+      <div style={{ padding: '32px 24px' }}>{content}</div>
     </div>
   )
 }
