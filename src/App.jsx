@@ -47,12 +47,12 @@ export default function App() {
 
         {/* Admin — new flow */}
         <Route path="/admin/dashboard" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
             <AdminDashboard />
           </ProtectedRoute>
         } />
         <Route path="/admin/contratos/:id" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
             <AdminContratoDetalle />
           </ProtectedRoute>
         } />
