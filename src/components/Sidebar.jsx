@@ -6,6 +6,7 @@ import NotificacionesPanel from '../modules/notificaciones/NotificacionesPanel'
 
 const menuItems = [
   { icon: '🏠', label: 'Dashboard',      path: '/dashboard' },
+  { icon: '🏢', label: 'Vista Admin',    path: '/admin/contratos' },
   { icon: '📋', label: 'Contratos',      path: '/contratos' },
   { icon: '👮', label: 'Guardias',       path: '/guardias' },
   { icon: '⏰', label: 'Turnos',         path: '/turnos' },
