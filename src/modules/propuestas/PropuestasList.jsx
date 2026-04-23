@@ -82,33 +82,44 @@ export default function PropuestasList() {
       return
     }
     const rootId = p.parent_proposal_id || p.id
-    const { data } = await supabase
+    // Cargar TODAS las versiones para calcular variación entre cada una
+    const { data: allVersions } = await supabase
       .from('proposals')
       .select('*')
       .or(`parent_proposal_id.eq.${rootId},id.eq.${rootId}`)
-      .eq('is_latest', false)
-      .order('version', { ascending: false })
-    setHistoryRows(prev => ({ ...prev, [pid]: data || [] }))
+      .order('version', { ascending: true })
+    if (!allVersions) { setExpanded(prev => ({ ...prev, [pid]: true })); return }
+
+    // Calcular variación de cada versión vs la anterior
+    const withVariation = allVersions.map((v, i) => {
+      if (i === 0) return { ...v, _variacion: null }
+      const prev = allVersions[i - 1]
+      const prevAmt = Number(prev.total_amount) || 0
+      const curAmt = Number(v.total_amount) || 0
+      if (!prevAmt) return { ...v, _variacion: null }
+      return { ...v, _variacion: ((curAmt - prevAmt) / prevAmt) * 100 }
+    })
+
+    // Solo históricas (sin la latest), orden desc
+    const historicas = withVariation.filter(v => !v.is_latest).reverse()
+    setHistoryRows(prev => ({ ...prev, [pid]: historicas }))
     setExpanded(prev => ({ ...prev, [pid]: true }))
   }
 
-  function renderVariation(p) {
-    const version = p.version || 1
-    if (version <= 1) return <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span>
-
-    const prevTotal = prevTotals[p.id]
-    if (prevTotal == null || prevTotal === 0) return <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span>
-
-    const currentTotal = Number(p.total_amount) || 0
-    const pct = ((currentTotal - prevTotal) / prevTotal) * 100
-
-    if (Math.abs(pct) < 0.01) {
-      return <span style={{ color: T.TEXT_MUTED, fontSize: 13 }}>= Sin cambio</span>
-    }
-    if (pct > 0) {
-      return <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>{'\u2191'} +{pct.toFixed(1)}%</span>
-    }
+  function renderVariationBadge(pct) {
+    if (pct == null) return <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span>
+    if (Math.abs(pct) < 0.01) return <span style={{ color: T.TEXT_MUTED, fontSize: 13 }}>= Sin cambio</span>
+    if (pct > 0) return <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>{'\u2191'} +{pct.toFixed(1)}%</span>
     return <span style={{ color: '#DC2626', fontWeight: 600, fontSize: 13 }}>{'\u2193'} {pct.toFixed(1)}%</span>
+  }
+
+  function getVariationPct(p) {
+    const version = p.version || 1
+    if (version <= 1) return null
+    const prevTotal = prevTotals[p.id]
+    if (prevTotal == null || prevTotal === 0) return null
+    const currentTotal = Number(p.total_amount) || 0
+    return ((currentTotal - prevTotal) / prevTotal) * 100
   }
 
   function renderRow(p, { isHistory = false } = {}) {
@@ -175,7 +186,7 @@ export default function PropuestasList() {
           Bs. {p.total_amount ? Number(p.total_amount).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '\u2014'}
         </td>
         <td style={{ padding: '14px 16px' }}>
-          {isHistory ? <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span> : renderVariation(p)}
+          {renderVariationBadge(isHistory ? p._variacion : getVariationPct(p))}
         </td>
         <td style={{ padding: '14px 16px' }}>
           <span style={{
