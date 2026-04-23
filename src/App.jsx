@@ -168,6 +168,11 @@ export default function App() {
             <PropuestaForm />
           </ProtectedRoute>
         } />
+        <Route path="/propuestas/:id/editar" element={
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+            <PropuestaForm />
+          </ProtectedRoute>
+        } />
 
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
