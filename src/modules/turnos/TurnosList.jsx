@@ -25,8 +25,9 @@ export default function TurnosList() {
   const [view, setView] = useState('calendar')
   const [filterContract, setFilterContract] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ guard_id: '', contract_id: '', start_time: '', end_time: '' })
+  const [form, setForm] = useState({ guard_id: '', contract_id: '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
   const [error, setError] = useState(null)
+  const [creating, setCreating] = useState(false)
 
   const days = getWeekDays(weekOffset)
   const weekStart = days[0].toISOString()
@@ -48,13 +49,71 @@ export default function TurnosList() {
     setGuards(g.data || [])
   }
 
+  // Calcula cuántos turnos se crearán según el rango de fechas
+  function getTurnoCount() {
+    if (!form.start_date || !form.end_date) return 0
+    const start = new Date(form.start_date + 'T00:00:00')
+    const end = new Date(form.end_date + 'T00:00:00')
+    if (end < start) return 0
+    return Math.round((end - start) / (24 * 60 * 60 * 1000)) + 1
+  }
+
+  const turnoCount = getTurnoCount()
+  const isNocturnal = form.start_hour && form.end_hour && form.end_hour <= form.start_hour
+
+  function formatDateShort(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+  }
+
   async function createShift(e) {
     e.preventDefault()
-    const { error: dbErr } = await supabase.from('shifts').insert({ ...form, status: 'programado' })
-    if (dbErr) { setError('Error al crear turno. Intente de nuevo.'); return }
-    setShowForm(false)
-    setForm({ guard_id: '', contract_id: '', start_time: '', end_time: '' })
-    loadData()
+    const { start_date, end_date, start_hour, end_hour, guard_id, contract_id } = form
+
+    if (end_date < start_date) { setError('La fecha fin debe ser igual o posterior a la fecha inicio.'); return }
+    if (turnoCount > 31) { setError('El rango máximo es de 31 días.'); return }
+
+    setCreating(true)
+    try {
+      const turnos = []
+      const current = new Date(start_date + 'T00:00:00')
+      const end = new Date(end_date + 'T00:00:00')
+
+      while (current <= end) {
+        const dayStr = current.toISOString().split('T')[0]
+        if (isNocturnal) {
+          // Turno nocturno: end_time es al día siguiente
+          const nextDay = new Date(current)
+          nextDay.setDate(nextDay.getDate() + 1)
+          const nextDayStr = nextDay.toISOString().split('T')[0]
+          turnos.push({
+            guard_id, contract_id,
+            start_time: `${dayStr}T${start_hour}:00`,
+            end_time: `${nextDayStr}T${end_hour}:00`,
+            status: 'programado'
+          })
+        } else {
+          turnos.push({
+            guard_id, contract_id,
+            start_time: `${dayStr}T${start_hour}:00`,
+            end_time: `${dayStr}T${end_hour}:00`,
+            status: 'programado'
+          })
+        }
+        current.setDate(current.getDate() + 1)
+      }
+
+      const { error: dbErr } = await supabase.from('shifts').insert(turnos)
+      if (dbErr) throw dbErr
+
+      setShowForm(false)
+      setForm({ guard_id: '', contract_id: '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
+      loadData()
+    } catch (err) {
+      setError('Error al crear turnos: ' + err.message)
+    } finally {
+      setCreating(false)
+    }
   }
 
   const inputStyle = { width: '100%', padding: '8px 12px', border: `1px solid ${T.BORDER}`, borderRadius: 6, fontSize: 14, fontFamily: T.FONT_BODY, boxSizing: 'border-box' }
@@ -109,18 +168,41 @@ export default function TurnosList() {
                 {filteredGuards.map(g => <option key={g.id} value={g.id}>{g.full_name}</option>)}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Inicio</label>
-                <input type="datetime-local" style={inputStyle} value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} required />
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Fecha inicio</label>
+                <input type="date" style={inputStyle} value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value, end_date: f.end_date || e.target.value }))} required />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Fin</label>
-                <input type="datetime-local" style={inputStyle} value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} required />
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Fecha fin</label>
+                <input type="date" style={inputStyle} value={form.end_date} min={form.start_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} required />
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Hora entrada</label>
+                <input type="time" style={inputStyle} value={form.start_hour} onChange={e => setForm(f => ({ ...f, start_hour: e.target.value }))} required />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Hora salida</label>
+                <input type="time" style={inputStyle} value={form.end_hour} onChange={e => setForm(f => ({ ...f, end_hour: e.target.value }))} required />
+              </div>
+            </div>
+            {turnoCount > 0 && (
+              <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 6, fontSize: 13, fontFamily: T.FONT_BODY, background: T.INFO + '15', color: T.INFO, border: `1px solid ${T.INFO}30` }}>
+                Se crearán <b>{turnoCount} turno{turnoCount > 1 ? 's' : ''}</b> (del {formatDateShort(form.start_date)} al {formatDateShort(form.end_date)})
+                {isNocturnal && <span style={{ marginLeft: 8 }}>· Turno nocturno</span>}
+              </div>
+            )}
+            {turnoCount > 31 && (
+              <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 6, fontSize: 13, fontFamily: T.FONT_BODY, background: T.WARN + '15', color: T.WARN, border: `1px solid ${T.WARN}30` }}>
+                El rango máximo permitido es de 31 días.
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" style={{ padding: '8px 20px', background: T.RED, color: T.WHITE, border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: T.FONT_DISPLAY }}>CREAR</button>
+              <button type="submit" disabled={creating || turnoCount === 0 || turnoCount > 31} style={{
+                padding: '8px 20px', background: (creating || turnoCount === 0 || turnoCount > 31) ? T.MUTED : T.RED, color: T.WHITE, border: 'none', borderRadius: 6, cursor: creating ? 'wait' : 'pointer', fontFamily: T.FONT_DISPLAY, opacity: (turnoCount === 0 || turnoCount > 31) ? 0.5 : 1,
+              }}>{creating ? 'Creando...' : turnoCount > 1 ? `CREAR ${turnoCount} TURNOS` : 'CREAR TURNO'}</button>
               <button type="button" onClick={() => setShowForm(false)} style={{ padding: '8px 20px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer' }}>Cancelar</button>
             </div>
           </form>
