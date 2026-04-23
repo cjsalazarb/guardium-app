@@ -35,7 +35,7 @@ export default function Sidebar() {
 
   // Admin sees their dashboard as home
   const effectiveMenuItems = role === 'admin'
-    ? [{ icon: '\uD83C\uDFE0', label: 'Mis Contratos', path: '/admin/dashboard' }, ...menuItems.filter(m => m.path !== '/dashboard')]
+    ? [{ icon: '\uD83C\uDFE0', label: 'Mis Contratos', path: '/admin/contratos' }, ...menuItems.filter(m => m.path !== '/dashboard')]
     : menuItems
 
   const handleClick = (item) => {

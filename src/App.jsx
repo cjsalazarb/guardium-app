@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard'
 import AdminDashboardLegacy from './pages/AdminDashboard'
 import AdminDashboard from './modules/admin/AdminDashboard'
 import AdminContratoDetalle from './modules/admin/AdminContratoDetalle'
+import AdminContratosList from './modules/admin/AdminContratosList'
+import AdminContratoDashboard from './modules/admin/AdminContratoDashboard'
 import Unauthorized from './pages/Unauthorized'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -56,6 +58,27 @@ export default function App() {
             <AdminContratoDetalle />
           </ProtectedRoute>
         } />
+
+        {/* Admin — DOMIA flow */}
+        <Route path="/admin/contratos" element={
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+            <AdminContratosList />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/contratos/:id/dashboard" element={
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+            <AdminContratoDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/contratos/:id/guardias" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><GuardiasList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/turnos" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><TurnosList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/novedades" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><NovedadesList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/visitantes" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><VisitantesList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/contratistas" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><ContratistasList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/vehiculos" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><VehiculosList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/paquetes" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><PaquetesList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/incidentes" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><IncidentesList /></ProtectedRoute>} />
+        <Route path="/admin/contratos/:id/facturacion" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><FacturacionList /></ProtectedRoute>} />
 
         {/* Admin Dashboard (legacy) */}
         <Route path="/contrato/:contractId/dashboard" element={
