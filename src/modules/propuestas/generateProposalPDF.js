@@ -17,12 +17,34 @@ const MARGIN = 20
 const TABLE_W = 170
 const fmt = n => Number(n || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+// Strip accents/ñ for jsPDF Helvetica compatibility
+function t(str) {
+  return String(str || '')
+    .replace(/ñ/g, 'n').replace(/Ñ/g, 'N')
+    .replace(/á/g, 'a').replace(/Á/g, 'A')
+    .replace(/é/g, 'e').replace(/É/g, 'E')
+    .replace(/í/g, 'i').replace(/Í/g, 'I')
+    .replace(/ó/g, 'o').replace(/Ó/g, 'O')
+    .replace(/ú/g, 'u').replace(/Ú/g, 'U')
+    .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+}
+
 // ═══════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════
 function pageW(doc) { return doc.internal.pageSize.getWidth() }
 function pageH(doc) { return doc.internal.pageSize.getHeight() }
 function contentW() { return TABLE_W }
+
+function getRowHeight(doc, row, widths, fontSize, minHeight) {
+  doc.setFontSize(fontSize)
+  let maxLines = 1
+  row.forEach((cell, i) => {
+    const lines = doc.splitTextToSize(t(String(cell || '')), widths[i] - 4)
+    if (lines.length > maxLines) maxLines = lines.length
+  })
+  return Math.max(minHeight, maxLines * 5 + 4)
+}
 
 function drawTable(doc, headers, rows, startY, options = {}) {
   const { colWidths, rowHeight = 8, headerBg = C.BLACK, fontSize = 9 } = options
@@ -37,27 +59,31 @@ function drawTable(doc, headers, rows, startY, options = {}) {
   doc.setFont('helvetica', 'bold')
   let x = MARGIN
   headers.forEach((h, i) => {
-    doc.text(String(h), x + 2, y + 5.5)
+    doc.text(t(String(h)), x + 2, y + 5.5)
     x += widths[i]
   })
   y += rowHeight
 
-  // Data rows
-  doc.setFontSize(fontSize)
+  // Data rows with dynamic height
   rows.forEach((row, rowIndex) => {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(fontSize)
+    const rh = getRowHeight(doc, row, widths, fontSize, rowHeight)
     const bg = rowIndex % 2 === 0 ? [255, 255, 255] : [250, 245, 245]
     doc.setFillColor(...bg)
-    doc.rect(MARGIN, y, TABLE_W, rowHeight, 'F')
+    doc.rect(MARGIN, y, TABLE_W, rh, 'F')
     doc.setDrawColor(226, 232, 240)
-    doc.rect(MARGIN, y, TABLE_W, rowHeight, 'S')
+    doc.rect(MARGIN, y, TABLE_W, rh, 'S')
     doc.setTextColor(26, 26, 26)
-    doc.setFont('helvetica', 'normal')
     x = MARGIN
     row.forEach((cell, i) => {
-      doc.text(String(cell ?? ''), x + 2, y + 5.5, { maxWidth: widths[i] - 4 })
+      const lines = doc.splitTextToSize(t(String(cell ?? '')), widths[i] - 4)
+      lines.forEach((line, li) => {
+        doc.text(line, x + 2, y + 5 + li * 5)
+      })
       x += widths[i]
     })
-    y += rowHeight
+    y += rh
   })
   return y
 }
@@ -132,7 +158,7 @@ function renderPortada(doc, proposal) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(28)
   doc.setTextColor(C.TEXT)
-  const titleLines = doc.splitTextToSize(proposal.title || 'Propuesta Comercial', splitX - MARGIN - 15)
+  const titleLines = doc.splitTextToSize(t(proposal.title || 'Propuesta Comercial'), splitX - MARGIN - 15)
   doc.text(titleLines, MARGIN, titleY)
 
   const afterTitle = titleY + titleLines.length * 12
@@ -155,21 +181,21 @@ function renderPortada(doc, proposal) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
   doc.setTextColor(C.TEXT)
-  doc.text(proposal.client_name || '', MARGIN, clientY + 10)
+  doc.text(t(proposal.client_name || ''), MARGIN, clientY + 10)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(C.SUBTLE)
   if (proposal.client_address) {
-    doc.text(proposal.client_address, MARGIN, clientY + 18)
+    doc.text(t(proposal.client_address), MARGIN, clientY + 18)
   }
 
   const dateY = h - 50
   const today = new Date().toLocaleDateString('es-BO', { year: 'numeric', month: 'long', day: 'numeric' })
   doc.setFontSize(10)
   doc.setTextColor(C.SUBTLE)
-  doc.text(`Fecha de emision: ${today}`, MARGIN, dateY)
-  doc.text('Vigencia: 15 dias', MARGIN, dateY + 7)
+  doc.text(t(`Fecha de emision: ${today}`), MARGIN, dateY)
+  doc.text(t('Vigencia: 15 dias'), MARGIN, dateY + 7)
 }
 
 // ═══════════════════════════════════════
@@ -186,11 +212,11 @@ function renderPresentacion(doc) {
   const p1 = 'GUARDIUM Seguridad Privada es una empresa boliviana especializada en servicios de seguridad privada. Nos distinguimos por ofrecer un modelo unico que integra guardias profesionales, tecnologia de control y gestion digital en una sola mensualidad.'
   const p2 = 'Nuestra propuesta de valor se centra en la transparencia operativa. Cada turno de guardia queda documentado digitalmente mediante fotografias y reportes en tiempo real. El cliente tiene visibilidad total desde cualquier dispositivo.'
 
-  const lines1 = doc.splitTextToSize(p1, contentW())
+  const lines1 = doc.splitTextToSize(t(p1), contentW())
   doc.text(lines1, MARGIN, y)
   y += lines1.length * 5 + 6
 
-  const lines2 = doc.splitTextToSize(p2, contentW())
+  const lines2 = doc.splitTextToSize(t(p2), contentW())
   doc.text(lines2, MARGIN, y)
   y += lines2.length * 5 + 14
 
@@ -223,12 +249,12 @@ function renderPresentacion(doc) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
     doc.setTextColor(C.TEXT)
-    doc.text(card.title, cx + 22, cy + 13)
+    doc.text(t(card.title), cx + 22, cy + 13)
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
     doc.setTextColor(C.SUBTLE)
-    const descLines = doc.splitTextToSize(card.desc, cardW - 26)
+    const descLines = doc.splitTextToSize(t(card.desc), cardW - 26)
     doc.text(descLines, cx + 22, cy + 21)
   })
 }
@@ -308,14 +334,14 @@ function renderDetalleServicio(doc, costData) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(12)
     doc.setTextColor(C.TEXT)
-    doc.text(sec.title, MARGIN + 14, y + 3)
+    doc.text(t(sec.title), MARGIN + 14, y + 3)
     y += 10
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.setTextColor(C.SUBTLE)
     sec.items.forEach(item => {
-      const lines = doc.splitTextToSize(item, contentW() - 18)
+      const lines = doc.splitTextToSize(t(item), contentW() - 18)
       doc.text('\u2022', MARGIN + 6, y)
       doc.text(lines, MARGIN + 12, y)
       y += lines.length * 5 + 2
@@ -351,8 +377,8 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
     `N. Propuesta: ${proposalNum}`,
   ]
 
-  infoLeft.forEach((line, i) => doc.text(line, MARGIN + 6, y + 8 + i * 6))
-  infoRight.forEach((line, i) => doc.text(line, MARGIN + TABLE_W / 2, y + 8 + i * 6))
+  infoLeft.forEach((line, i) => doc.text(t(line), MARGIN + 6, y + 8 + i * 6))
+  infoRight.forEach((line, i) => doc.text(t(line), MARGIN + TABLE_W / 2, y + 8 + i * 6))
 
   y += 42
 
@@ -395,7 +421,7 @@ function renderPropuestaEconomica(doc, proposal, costData, calcs) {
   doc.setFontSize(8)
   doc.setTextColor(C.SUBTLE)
   const note = 'Esta propuesta tiene vigencia de 15 dias calendario a partir de la fecha de emision. Todos los precios estan expresados en Bolivianos (Bs.)'
-  const noteLines = doc.splitTextToSize(note, contentW())
+  const noteLines = doc.splitTextToSize(t(note), contentW())
   doc.text(noteLines, MARGIN, y)
 }
 
@@ -410,7 +436,7 @@ function renderTerminos(doc, proposal) {
   doc.setFontSize(10)
   doc.setTextColor(C.TEXT)
   const intro = 'Los siguientes terminos regulan la relacion contractual entre GUARDIUM Seguridad Privada y el cliente.'
-  const introLines = doc.splitTextToSize(intro, contentW())
+  const introLines = doc.splitTextToSize(t(intro), contentW())
   doc.text(introLines, MARGIN, y)
   y += introLines.length * 5 + 8
 
@@ -438,12 +464,12 @@ function renderTerminos(doc, proposal) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10)
     doc.setTextColor(C.TEXT)
-    doc.text(clause.title, MARGIN + 16, y + 7)
+    doc.text(t(clause.title), MARGIN + 16, y + 7)
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(C.SUBTLE)
-    const clauseLines = doc.splitTextToSize(clause.text, contentW() - 20)
+    const clauseLines = doc.splitTextToSize(t(clause.text), contentW() - 20)
     doc.text(clauseLines, MARGIN + 16, y + 13)
 
     y += 22
@@ -494,8 +520,8 @@ function renderTerminos(doc, proposal) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(C.SUBTLE)
-  doc.text(proposal.client_contact || '', rightX, y + 26)
-  doc.text(proposal.client_name || '', rightX, y + 32)
+  doc.text(t(proposal.client_contact || ''), rightX, y + 26)
+  doc.text(t(proposal.client_name || ''), rightX, y + 32)
 }
 
 // ═══════════════════════════════════════
