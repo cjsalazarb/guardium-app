@@ -28,12 +28,14 @@ export default function PropuestasList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [expanded, setExpanded] = useState({})
-  const [history, setHistory] = useState({})
+  const [historyRows, setHistoryRows] = useState({})
+  const [prevTotals, setPrevTotals] = useState({})
   const navigate = useNavigate()
 
   useEffect(() => { loadProposals() }, [])
 
   async function loadProposals() {
+    // 1. Cargar propuestas más recientes
     const { data, error: dbErr } = await supabase
       .from('proposals')
       .select('*')
@@ -41,30 +43,77 @@ export default function PropuestasList() {
       .order('created_at', { ascending: false })
     if (dbErr) { setError('Error al cargar propuestas. Intente de nuevo.'); setLoading(false); return }
     setProposals(data || [])
+
+    // 2. Cargar totales de versiones anteriores para calcular variación
+    const versioned = (data || []).filter(p => (p.version || 1) > 1)
+    if (versioned.length > 0) {
+      const rootIds = [...new Set(versioned.map(p => p.parent_proposal_id).filter(Boolean))]
+      if (rootIds.length > 0) {
+        const { data: prevVersions } = await supabase
+          .from('proposals')
+          .select('id, parent_proposal_id, version, total_amount')
+          .eq('is_latest', false)
+          .order('version', { ascending: false })
+        if (prevVersions) {
+          // Para cada propuesta latest, encontrar la versión inmediatamente anterior
+          const map = {}
+          versioned.forEach(p => {
+            const rootId = p.parent_proposal_id || p.id
+            const prev = prevVersions.find(pv => {
+              const pvRoot = pv.parent_proposal_id || pv.id
+              return pvRoot === rootId && pv.version === (p.version || 1) - 1
+            })
+            if (prev && prev.total_amount != null) {
+              map[p.id] = Number(prev.total_amount)
+            }
+          })
+          setPrevTotals(map)
+        }
+      }
+    }
+
     setLoading(false)
   }
 
-  async function toggleHistory(p) {
-    const rootId = p.parent_proposal_id || p.id
-    if (expanded[rootId]) {
-      setExpanded(prev => ({ ...prev, [rootId]: false }))
+  async function toggleExpand(p) {
+    const pid = p.id
+    if (expanded[pid]) {
+      setExpanded(prev => ({ ...prev, [pid]: false }))
       return
     }
-    // Cargar versiones anteriores
+    const rootId = p.parent_proposal_id || p.id
     const { data } = await supabase
       .from('proposals')
       .select('*')
       .or(`parent_proposal_id.eq.${rootId},id.eq.${rootId}`)
-      .neq('id', p.id)
+      .eq('is_latest', false)
       .order('version', { ascending: false })
-    setHistory(prev => ({ ...prev, [rootId]: data || [] }))
-    setExpanded(prev => ({ ...prev, [rootId]: true }))
+    setHistoryRows(prev => ({ ...prev, [pid]: data || [] }))
+    setExpanded(prev => ({ ...prev, [pid]: true }))
+  }
+
+  function renderVariation(p) {
+    const version = p.version || 1
+    if (version <= 1) return <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span>
+
+    const prevTotal = prevTotals[p.id]
+    if (prevTotal == null || prevTotal === 0) return <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span>
+
+    const currentTotal = Number(p.total_amount) || 0
+    const pct = ((currentTotal - prevTotal) / prevTotal) * 100
+
+    if (Math.abs(pct) < 0.01) {
+      return <span style={{ color: T.TEXT_MUTED, fontSize: 13 }}>= Sin cambio</span>
+    }
+    if (pct > 0) {
+      return <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>{'\u2191'} +{pct.toFixed(1)}%</span>
+    }
+    return <span style={{ color: '#DC2626', fontWeight: 600, fontSize: 13 }}>{'\u2193'} {pct.toFixed(1)}%</span>
   }
 
   function renderRow(p, { isHistory = false } = {}) {
-    const rootId = p.parent_proposal_id || p.id
     const hasVersions = (p.version || 1) > 1 || p.parent_proposal_id
-    const isExpanded = expanded[rootId]
+    const isExp = expanded[p.id]
 
     return (
       <tr
@@ -79,24 +128,26 @@ export default function PropuestasList() {
         onMouseLeave={e => e.currentTarget.style.background = isHistory ? '#F9FAFB' : 'transparent'}
         onClick={() => navigate(`/propuestas/${p.id}`)}
       >
-        <td style={{ padding: '14px 16px', fontWeight: 600, color: T.TEXT }}>
+        <td style={{ padding: '14px 16px', fontWeight: 600, color: isHistory ? T.TEXT_MUTED : T.TEXT }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {!isHistory && hasVersions && (
+            {!isHistory && hasVersions ? (
               <button
-                onClick={e => { e.stopPropagation(); toggleHistory(p) }}
+                onClick={e => { e.stopPropagation(); toggleExpand(p) }}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 14, padding: 0, color: T.TEXT_MUTED, lineHeight: 1,
+                  fontSize: 12, padding: '2px 4px', color: T.TEXT_MUTED, lineHeight: 1,
                 }}
               >
-                {isExpanded ? '\u25BC' : '\u25B6'}
+                {isExp ? '\u25BC' : '\u25B6'}
               </button>
-            )}
-            {isHistory && <span style={{ color: T.TEXT_MUTED, marginLeft: 22 }}>\u21B3</span>}
+            ) : !isHistory ? (
+              <span style={{ width: 20 }} />
+            ) : null}
+            {isHistory && <span style={{ color: T.TEXT_MUTED, marginLeft: 28, fontSize: 13 }}>{'\u21B3'}</span>}
             {p.client_name}
           </span>
         </td>
-        <td style={{ padding: '14px 16px', color: T.TEXT }}>{p.title || '\u2014'}</td>
+        <td style={{ padding: '14px 16px', color: isHistory ? T.TEXT_MUTED : T.TEXT }}>{p.title || '\u2014'}</td>
         <td style={{ padding: '14px 16px' }}>
           {p.is_latest ? (
             <span style={{
@@ -117,8 +168,14 @@ export default function PropuestasList() {
         <td style={{ padding: '14px 16px', color: T.TEXT_MUTED, fontSize: 13 }}>
           {p.created_at ? new Date(p.created_at).toLocaleDateString() : '\u2014'}
         </td>
+        <td style={{ padding: '14px 16px', color: T.TEXT_MUTED, fontSize: 13 }}>
+          {p.valid_until ? new Date(p.valid_until).toLocaleDateString() : '\u2014'}
+        </td>
         <td style={{ padding: '14px 16px', fontWeight: 600 }}>
           Bs. {p.total_amount ? Number(p.total_amount).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '\u2014'}
+        </td>
+        <td style={{ padding: '14px 16px' }}>
+          {isHistory ? <span style={{ color: T.TEXT_MUTED }}>{'\u2014'}</span> : renderVariation(p)}
         </td>
         <td style={{ padding: '14px 16px' }}>
           <span style={{
@@ -181,17 +238,16 @@ export default function PropuestasList() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.FONT_BODY }}>
             <thead>
               <tr style={{ background: T.BG, borderBottom: `1px solid ${T.BORDER}` }}>
-                {['Cliente', 'Titulo', 'Version', 'Fecha', 'Total (Bs.)', 'Estado', 'Acciones'].map(h => (
+                {['Cliente', 'Titulo', 'Version', 'Fecha', 'Valida hasta', 'Total (Bs.)', 'Variacion', 'Estado', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: T.TEXT_MUTED, fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {proposals.map(p => {
-                const rootId = p.parent_proposal_id || p.id
                 const rows = [renderRow(p)]
-                if (expanded[rootId] && history[rootId]) {
-                  history[rootId].forEach(h => rows.push(renderRow(h, { isHistory: true })))
+                if (expanded[p.id] && historyRows[p.id]) {
+                  historyRows[p.id].forEach(h => rows.push(renderRow(h, { isHistory: true })))
                 }
                 return rows
               })}
