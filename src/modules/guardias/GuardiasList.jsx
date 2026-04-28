@@ -37,7 +37,7 @@ export default function GuardiasList() {
     if (!confirm(`Generar nuevo PIN para ${guard.full_name}?`)) return
     const newPin = Math.floor(100000 + Math.random() * 900000).toString()
     try {
-      const internalEmail = `${guard.username.toLowerCase().replace('-', '')}@guardium.internal`
+      const internalEmail = `${guard.username.toLowerCase().replace('-', '')}@guardium.bo`
       const { error: authErr } = await supabase.auth.admin.updateUserById(guard.user_id, { password: newPin })
       if (authErr) {
         // Fallback: update only in guards table if admin API not available

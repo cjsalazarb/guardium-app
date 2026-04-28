@@ -75,7 +75,7 @@ export default function GuardiaForm() {
         }
 
         const finalContractId = form.contract_id || null
-        const internalEmail = `${username.toLowerCase().replace('-', '')}@guardium.internal`
+        const internalEmail = `${username.toLowerCase().replace('-', '')}@guardium.bo`
 
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: internalEmail,

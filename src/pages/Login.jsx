@@ -47,7 +47,7 @@ export default function Login() {
     setLoading(true)
     try {
       const code = guardCode.toUpperCase().trim()
-      const internalEmail = `${code.toLowerCase().replace('-', '')}@guardium.internal`
+      const internalEmail = `${code.toLowerCase().replace('-', '')}@guardium.bo`
 
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: internalEmail,
