@@ -76,6 +76,7 @@ export default function GuardiaForm() {
 
         const finalContractId = form.contract_id || null
         const internalEmail = `${username.toLowerCase().replace('-', '')}@guardium.bo`
+        console.log('Creando guardia con email interno:', internalEmail)
 
         const { data: result, error: fnError } = await supabase.functions.invoke(
           'create-guard-user',

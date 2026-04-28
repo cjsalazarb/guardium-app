@@ -46,14 +46,17 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const code = guardCode.toUpperCase().trim()
-      const internalEmail = `${code.toLowerCase().replace('-', '')}@guardium.bo`
+      const codigoLimpio = guardCode.trim().toUpperCase()
+      const internalEmail = `${codigoLimpio.toLowerCase().replace('-', '')}@guardium.bo`
 
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: internalEmail,
         password: guardPin,
       })
-      if (authError) throw new Error('Codigo o contrasena incorrectos')
+      if (authError) {
+        console.error('Login guardia error:', authError.message, '| email usado:', internalEmail)
+        throw new Error('Codigo o contrasena incorrectos')
+      }
 
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
