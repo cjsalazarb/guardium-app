@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import Toast from '../../components/Toast'
-import { useAuth } from '../../lib/auth'
 import { T } from '../../styles/tokens'
 
 export default function TabletPortal() {
-  const { user, contractId, signOut } = useAuth()
+  const navigate = useNavigate()
   const [guard, setGuard] = useState(null)
   const [currentShift, setCurrentShift] = useState(null)
   const [lastCheckin, setLastCheckin] = useState(null)
@@ -16,16 +16,27 @@ export default function TabletPortal() {
   const [confirmMsg, setConfirmMsg] = useState('')
   const [error, setError] = useState(null)
   const [contract, setContract] = useState(null)
+  const [guardSession, setGuardSession] = useState(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
 
   useEffect(() => {
-    if (user?.id) loadData()
+    const raw = localStorage.getItem('guardium_guard_session')
+    if (!raw) { navigate('/login'); return }
+    const session = JSON.parse(raw)
+    const horasTranscurridas = (Date.now() - new Date(session.logged_at).getTime()) / (1000 * 60 * 60)
+    if (horasTranscurridas > 12) {
+      localStorage.removeItem('guardium_guard_session')
+      navigate('/login')
+      return
+    }
+    setGuardSession(session)
+    loadData(session.guard_id)
     return () => stopCamera()
-  }, [user])
+  }, [])
 
-  async function loadData() {
-    const { data: g, error: gErr } = await supabase.from('guards').select('*').eq('user_id', user.id).single()
+  async function loadData(guardId) {
+    const { data: g, error: gErr } = await supabase.from('guards').select('*').eq('id', guardId).single()
     if (gErr) { setError('Error al cargar datos. Intente de nuevo.'); return }
     setGuard(g)
     if (g) {
@@ -180,10 +191,10 @@ export default function TabletPortal() {
     <div style={{ minHeight: '100vh', background: T.BLACK, color: T.WHITE, fontFamily: T.FONT_BODY, padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>Hola, {guard?.full_name || user?.full_name || 'Guardia'}</div>
-          <div style={{ fontSize: 14, color: T.STEEL }}>{contract?.client_name || 'Sin contrato'}</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>Hola, {guard?.full_name || guardSession?.full_name || 'Guardia'}</div>
+          <div style={{ fontSize: 14, color: T.STEEL }}>{contract?.client_name || guardSession?.contract_name || 'Sin contrato'}</div>
         </div>
-        <button onClick={signOut} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: T.STEEL, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Salir</button>
+        <button onClick={() => { localStorage.removeItem('guardium_guard_session'); navigate('/login') }} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: T.STEEL, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Salir</button>
       </div>
 
       {currentShift && (

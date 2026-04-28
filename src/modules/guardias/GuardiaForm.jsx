@@ -75,31 +75,15 @@ export default function GuardiaForm() {
         }
 
         const finalContractId = form.contract_id || null
-        const internalEmail = `${username.toLowerCase().replace('-', '')}@guardium.bo`
-        console.log('Creando guardia con email interno:', internalEmail)
 
-        const { data: result, error: fnError } = await supabase.functions.invoke(
-          'create-guard-user',
-          { body: { email: internalEmail, password: pin } }
-        )
-        if (fnError || result?.error) {
-          throw new Error(fnError?.message || result?.error)
-        }
-
-        const userId = result.user.id
-        const { error: userError } = await supabase.from('users').insert({
-          id: userId, full_name: form.full_name, role: 'guardia',
-          contract_id: finalContractId, phone: form.phone,
-          photo_url, active: true,
-        })
-        if (userError) throw userError
-
-        const { error: guardError } = await supabase.from('guards').insert({
-          user_id: userId, ci: form.ci, full_name: form.full_name,
+        const guardPayload = {
+          full_name: form.full_name, ci: form.ci,
           phone: form.phone, emergency_contact: form.emergency_contact,
           contract_id: finalContractId, photo_url, active: true,
           username: username, pin_code: pin,
-        })
+        }
+
+        const { error: guardError } = await supabase.from('guards').insert(guardPayload)
         if (guardError) throw guardError
 
         setCredenciales({ username, pin, nombre: form.full_name })

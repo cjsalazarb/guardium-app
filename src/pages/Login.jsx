@@ -47,24 +47,34 @@ export default function Login() {
     setLoading(true)
     try {
       const codigoLimpio = guardCode.trim().toUpperCase()
-      const internalEmail = `${codigoLimpio.toLowerCase().replace('-', '')}@guardium.bo`
 
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: internalEmail,
-        password: guardPin,
-      })
-      if (authError) {
-        console.error('Login guardia error:', authError.message, '| email usado:', internalEmail)
-        if (authError.message.includes('Email logins are disabled')) {
-          throw new Error('Error de configuracion — contacte al administrador')
-        }
+      const { data: guard, error: dbErr } = await supabase
+        .from('guards')
+        .select('id, full_name, username, pin_code, contract_id, active, contracts(client_name)')
+        .eq('username', codigoLimpio)
+        .single()
+
+      if (dbErr || !guard) {
         throw new Error('Codigo o contrasena incorrectos')
       }
-
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        navigate('/tablet')
+      if (guard.pin_code !== guardPin) {
+        throw new Error('Codigo o contrasena incorrectos')
       }
+      if (!guard.active) {
+        throw new Error('Guardia inactivo — contacte al administrador')
+      }
+
+      localStorage.setItem('guardium_guard_session', JSON.stringify({
+        type: 'guardia',
+        guard_id: guard.id,
+        full_name: guard.full_name,
+        username: guard.username,
+        contract_id: guard.contract_id,
+        contract_name: guard.contracts?.client_name,
+        logged_at: new Date().toISOString(),
+      }))
+
+      navigate('/tablet')
     } catch (err) {
       setError(err.message || 'Codigo o contrasena incorrectos')
     } finally {

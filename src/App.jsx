@@ -139,11 +139,7 @@ export default function App() {
         } />
 
         {/* Portal Tablet */}
-        <Route path="/tablet" element={
-          <ProtectedRoute allowedRoles={['guardia']}>
-            <TabletPortal />
-          </ProtectedRoute>
-        } />
+        <Route path="/tablet" element={<TabletPortal />} />
 
         {/* F2 Modules */}
         <Route path="/visitantes" element={
