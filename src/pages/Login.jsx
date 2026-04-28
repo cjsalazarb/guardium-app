@@ -4,13 +4,16 @@ import { supabase } from '../lib/supabase'
 import { T } from '../styles/tokens'
 
 export default function Login() {
+  const [loginMode, setLoginMode] = useState('admin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [guardCode, setGuardCode] = useState('')
+  const [guardPin, setGuardPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleAdminSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -36,6 +39,45 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGuardiaSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const code = guardCode.toUpperCase().trim()
+      const internalEmail = `${code.toLowerCase().replace('-', '')}@guardium.internal`
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: internalEmail,
+        password: guardPin,
+      })
+      if (authError) throw new Error('Codigo o contrasena incorrectos')
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        navigate('/tablet')
+      }
+    } catch (err) {
+      setError(err.message || 'Codigo o contrasena incorrectos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inputStyleLogin = {
+    width: '100%',
+    padding: '12px 16px',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: T.RADIUS_SM,
+    color: T.WHITE,
+    fontSize: 16,
+    fontFamily: T.FONT_BODY,
+    outline: 'none',
+    marginBottom: 12,
+    boxSizing: 'border-box',
   }
 
   return (
@@ -114,91 +156,149 @@ export default function Login() {
           width: '100%',
           height: 1,
           background: 'rgba(255,255,255,0.15)',
-          margin: '32px 0',
+          margin: '32px 0 24px',
         }} />
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: T.RADIUS_SM,
-              color: T.WHITE,
-              fontSize: 16,
-              fontFamily: T.FONT_BODY,
-              outline: 'none',
-              marginBottom: 12,
-              boxSizing: 'border-box',
-            }}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: T.RADIUS_SM,
-              color: T.WHITE,
-              fontSize: 16,
-              fontFamily: T.FONT_BODY,
-              outline: 'none',
-              marginBottom: 20,
-              boxSizing: 'border-box',
-            }}
-          />
+        {/* Toggle Admin / Guardia */}
+        <div style={{ display: 'flex', width: '100%', marginBottom: 24, borderRadius: 10,
+          overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+          {['admin','guardia'].map(mode => (
+            <button key={mode} type="button"
+              onClick={() => { setLoginMode(mode); setError('') }}
+              style={{ flex: 1, padding: '10px', border: 'none', cursor: 'pointer',
+                fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13,
+                background: loginMode === mode ? T.RED : 'rgba(255,255,255,0.05)',
+                color: loginMode === mode ? 'white' : 'rgba(255,255,255,0.5)',
+                transition: 'all 0.2s' }}>
+              {mode === 'admin' ? '⚙️ Admin' : '👮 Guardia'}
+            </button>
+          ))}
+        </div>
 
-          {error && (
-            <div style={{
-              background: 'rgba(220,38,38,0.2)',
-              border: '1px solid rgba(220,38,38,0.5)',
-              borderRadius: T.RADIUS_SM,
-              padding: '10px 14px',
-              color: '#fca5a5',
-              fontSize: 14,
-              marginBottom: 16,
-              fontFamily: T.FONT_BODY,
-            }}>
-              {error}
-            </div>
-          )}
+        {/* Formulario Admin */}
+        {loginMode === 'admin' && (
+          <form onSubmit={handleAdminSubmit} style={{ width: '100%' }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={inputStyleLogin}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{ ...inputStyleLogin, marginBottom: 20 }}
+            />
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px 0',
-              background: loading ? '#d97706' : T.ACCENT,
-              color: T.BLACK,
-              fontFamily: T.FONT_DISPLAY,
-              fontSize: 20,
-              fontWeight: 'bold',
-              letterSpacing: '0.05em',
-              border: 'none',
-              borderRadius: T.RADIUS_SM,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s',
-              opacity: loading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#d97706' }}
-            onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = T.ACCENT }}
-          >
-            {loading ? 'INGRESANDO...' : 'INGRESAR'}
-          </button>
-        </form>
+            {error && (
+              <div style={{
+                background: 'rgba(220,38,38,0.2)',
+                border: '1px solid rgba(220,38,38,0.5)',
+                borderRadius: T.RADIUS_SM,
+                padding: '10px 14px',
+                color: '#fca5a5',
+                fontSize: 14,
+                marginBottom: 16,
+                fontFamily: T.FONT_BODY,
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                background: loading ? '#d97706' : T.ACCENT,
+                color: T.BLACK,
+                fontFamily: T.FONT_DISPLAY,
+                fontSize: 20,
+                fontWeight: 'bold',
+                letterSpacing: '0.05em',
+                border: 'none',
+                borderRadius: T.RADIUS_SM,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+                opacity: loading ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#d97706' }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = T.ACCENT }}
+            >
+              {loading ? 'INGRESANDO...' : 'INGRESAR'}
+            </button>
+          </form>
+        )}
+
+        {/* Formulario Guardia */}
+        {loginMode === 'guardia' && (
+          <form onSubmit={handleGuardiaSubmit} style={{ width: '100%' }}>
+            <input
+              type="text"
+              placeholder="Codigo de guardia (ej: GRD-001)"
+              value={guardCode}
+              onChange={(e) => setGuardCode(e.target.value.toUpperCase())}
+              required
+              style={{ ...inputStyleLogin, fontFamily: T.FONT_DISPLAY, fontSize: 20,
+                letterSpacing: '0.1em', textAlign: 'center' }}
+            />
+            <input
+              type="password"
+              placeholder="Contrasena (6 digitos)"
+              value={guardPin}
+              onChange={(e) => setGuardPin(e.target.value.replace(/\D/g,'').slice(0,6))}
+              required
+              maxLength={6}
+              style={{ ...inputStyleLogin, fontFamily: 'monospace', fontSize: 20,
+                letterSpacing: '0.3em', textAlign: 'center', marginBottom: 20 }}
+            />
+
+            {error && (
+              <div style={{
+                background: 'rgba(220,38,38,0.2)',
+                border: '1px solid rgba(220,38,38,0.5)',
+                borderRadius: T.RADIUS_SM,
+                padding: '10px 14px',
+                color: '#fca5a5',
+                fontSize: 14,
+                marginBottom: 16,
+                fontFamily: T.FONT_BODY,
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                background: loading ? '#d97706' : T.ACCENT,
+                color: T.BLACK,
+                fontFamily: T.FONT_DISPLAY,
+                fontSize: 20,
+                fontWeight: 'bold',
+                letterSpacing: '0.05em',
+                border: 'none',
+                borderRadius: T.RADIUS_SM,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+                opacity: loading ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#d97706' }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = T.ACCENT }}
+            >
+              {loading ? 'INGRESANDO...' : 'INGRESAR AL PORTAL'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )
