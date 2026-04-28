@@ -17,6 +17,8 @@ export default function TabletPortal() {
   const [error, setError] = useState(null)
   const [contract, setContract] = useState(null)
   const [guardSession, setGuardSession] = useState(null)
+  const [fotoIncidente, setFotoIncidente] = useState(null)
+  const [fotoPreview, setFotoPreview] = useState(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
 
@@ -114,7 +116,18 @@ export default function TabletPortal() {
     if (modal === 'novedad') {
       result = await supabase.from('novelty_log').insert({ ...base, guard_id: guard.id, shift_id: currentShift?.id, content: modalForm.content })
     } else if (modal === 'incidente') {
-      result = await supabase.from('incident_reports').insert({ ...base, guard_id: guard.id, title: modalForm.title, description: modalForm.description, severity: modalForm.severity || 'bajo' })
+      let foto_url = null
+      if (fotoIncidente) {
+        const fileName = `incident_${Date.now()}_${fotoIncidente.name}`
+        const { error: upErr } = await supabase.storage.from('incident-photos').upload(fileName, fotoIncidente)
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from('incident-photos').getPublicUrl(fileName)
+          foto_url = urlData.publicUrl
+        }
+      }
+      result = await supabase.from('incident_reports').insert({ ...base, guard_id: guard.id, title: modalForm.title, description: modalForm.description, severity: modalForm.severity || 'bajo', photo_url: foto_url })
+      setFotoIncidente(null)
+      setFotoPreview(null)
     } else if (modal === 'vehiculo') {
       result = await supabase.from('vehicles').insert({ ...base, plate: modalForm.plate?.toUpperCase(), type: modalForm.type, brand: modalForm.brand, owner_name: modalForm.owner_name })
     } else if (modal === 'paquete') {
@@ -246,10 +259,15 @@ export default function TabletPortal() {
 
       {modal && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000,
-        }} onClick={() => setModal(null)}>
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.85)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 16,
+        }} onClick={() => { setModal(null); setFotoIncidente(null); setFotoPreview(null) }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#1A1A1A', borderRadius: '24px 24px 0 0', padding: 32, width: '100%', maxWidth: 500, maxHeight: '80vh', overflowY: 'auto',
+            background: '#1A1A1A', borderRadius: 16, padding: 24,
+            width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
           }}>
             <h3 style={{ fontFamily: T.FONT_DISPLAY, color: T.WHITE, margin: '0 0 20px', fontSize: 24 }}>
               {modal.toUpperCase()}
@@ -270,6 +288,60 @@ export default function TabletPortal() {
                   )}
                 </div>
               ))}
+
+              {/* Campo foto solo para incidentes */}
+              {modal === 'incidente' && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    Foto del incidente (opcional)
+                  </div>
+                  {fotoPreview ? (
+                    <div style={{ position: 'relative' }}>
+                      <img src={fotoPreview} alt="Preview"
+                        style={{ width: '100%', borderRadius: 10, maxHeight: 200, objectFit: 'cover' }} />
+                      <button type="button"
+                        onClick={() => { setFotoIncidente(null); setFotoPreview(null) }}
+                        style={{ position: 'absolute', top: 8, right: 8,
+                          background: 'rgba(0,0,0,0.7)', color: 'white',
+                          border: 'none', borderRadius: '50%',
+                          width: 28, height: 28, cursor: 'pointer', fontSize: 14 }}>
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <label style={{ flex: 1, padding: 12, borderRadius: 10,
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1.5px dashed rgba(255,255,255,0.2)',
+                        textAlign: 'center', color: 'rgba(255,255,255,0.6)',
+                        fontSize: 13, cursor: 'pointer' }}>
+                        📷 Tomar foto
+                        <input type="file" accept="image/*" capture="environment"
+                          style={{ display: 'none' }}
+                          onChange={e => {
+                            const f = e.target.files[0]
+                            if (f) { setFotoIncidente(f); setFotoPreview(URL.createObjectURL(f)) }
+                          }} />
+                      </label>
+                      <label style={{ flex: 1, padding: 12, borderRadius: 10,
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1.5px dashed rgba(255,255,255,0.2)',
+                        textAlign: 'center', color: 'rgba(255,255,255,0.6)',
+                        fontSize: 13, cursor: 'pointer' }}>
+                        🖼 Galeria
+                        <input type="file" accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={e => {
+                            const f = e.target.files[0]
+                            if (f) { setFotoIncidente(f); setFotoPreview(URL.createObjectURL(f)) }
+                          }} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button type="submit" disabled={saving} style={{
                 width: '100%', padding: '16px 0', background: T.RED, color: T.WHITE, border: 'none',
                 borderRadius: 12, fontSize: 20, fontFamily: T.FONT_DISPLAY, cursor: 'pointer', marginTop: 8,
