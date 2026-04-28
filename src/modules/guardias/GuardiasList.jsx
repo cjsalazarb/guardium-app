@@ -10,6 +10,7 @@ export default function GuardiasList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [credPopup, setCredPopup] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const navigate = useNavigate()
   const { id: routeContractId } = useParams()
   const location = useLocation()
@@ -42,6 +43,18 @@ export default function GuardiasList() {
       setCredPopup({ username: guard.username, pin: newPin, nombre: guard.full_name })
     } catch (err) {
       setError('Error al cambiar PIN: ' + err.message)
+    }
+  }
+
+  async function handleEliminar(guardId) {
+    try {
+      const { error: delErr } = await supabase.from('guards').delete().eq('id', guardId)
+      if (delErr) throw delErr
+      setConfirmDelete(null)
+      loadGuards()
+    } catch (err) {
+      setError('Error al eliminar: ' + err.message)
+      setConfirmDelete(null)
     }
   }
 
@@ -119,6 +132,10 @@ export default function GuardiasList() {
                     }}>🔄 Nuevo PIN</button>
                   </>
                 )}
+                <button onClick={e => { e.stopPropagation(); setConfirmDelete({ id: g.id, nombre: g.full_name }) }} style={{
+                  padding: '5px 12px', background: 'white', color: '#DC2626', border: '1.5px solid #DC2626',
+                  borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                }}>🗑 Eliminar</button>
               </div>
             </div>
           ))}
@@ -187,6 +204,44 @@ export default function GuardiasList() {
                   fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13,
                   cursor: 'pointer' }}>
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar eliminación */}
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setConfirmDelete(null)}>
+          <div style={{ background: 'white', borderRadius: T.RADIUS, padding: 28,
+            maxWidth: 380, width: '90%', boxShadow: T.SHADOW_LG,
+            borderTop: '4px solid #DC2626' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontFamily: T.FONT_DISPLAY, fontSize: 20,
+              color: T.BLACK, textAlign: 'center', marginBottom: 8 }}>
+              ELIMINAR GUARDIA
+            </div>
+            <div style={{ color: T.TEXT_MUTED, fontSize: 14,
+              textAlign: 'center', marginBottom: 24 }}>
+              Estas seguro que deseas eliminar a<br/>
+              <strong style={{ color: T.BLACK }}>{confirmDelete.nombre}</strong>?<br/>
+              Esta accion no se puede deshacer.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDelete(null)}
+                style={{ flex: 1, padding: '10px', borderRadius: T.RADIUS_SM,
+                  border: `1.5px solid ${T.BORDER}`, background: 'white',
+                  fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={() => handleEliminar(confirmDelete.id)}
+                style={{ flex: 1, padding: '10px', borderRadius: T.RADIUS_SM, border: 'none',
+                  background: '#DC2626', color: 'white',
+                  fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Si, eliminar
               </button>
             </div>
           </div>

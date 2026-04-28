@@ -47,18 +47,23 @@ export default function Login() {
     setLoading(true)
     try {
       const codigoLimpio = guardCode.trim().toUpperCase()
+      console.log('Buscando guardia:', codigoLimpio, 'PIN:', guardPin)
 
-      const { data: guard, error: dbErr } = await supabase
+      // Paso 1: buscar por username solamente
+      const { data: guard, error: findError } = await supabase
         .from('guards')
         .select('id, full_name, username, pin_code, contract_id, active, contracts(client_name)')
         .eq('username', codigoLimpio)
         .single()
 
-      if (dbErr || !guard) {
-        throw new Error('Codigo o contrasena incorrectos')
+      console.log('Guardia encontrado:', guard, 'Error:', findError)
+
+      if (findError || !guard) {
+        throw new Error('Codigo de guardia no encontrado')
       }
-      if (guard.pin_code !== guardPin) {
-        throw new Error('Codigo o contrasena incorrectos')
+      // Paso 2: comparar PIN manualmente
+      if (String(guard.pin_code).trim() !== String(guardPin).trim()) {
+        throw new Error('Contrasena incorrecta')
       }
       if (!guard.active) {
         throw new Error('Guardia inactivo — contacte al administrador')
@@ -76,7 +81,8 @@ export default function Login() {
 
       navigate('/tablet')
     } catch (err) {
-      setError(err.message || 'Codigo o contrasena incorrectos')
+      console.error('Login error:', err.message)
+      setError(err.message)
     } finally {
       setLoading(false)
     }
