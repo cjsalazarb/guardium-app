@@ -55,6 +55,9 @@ export default function Login() {
       })
       if (authError) {
         console.error('Login guardia error:', authError.message, '| email usado:', internalEmail)
+        if (authError.message.includes('Email logins are disabled')) {
+          throw new Error('Error de configuracion — contacte al administrador')
+        }
         throw new Error('Codigo o contrasena incorrectos')
       }
 
