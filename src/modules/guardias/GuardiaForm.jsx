@@ -77,13 +77,15 @@ export default function GuardiaForm() {
         const finalContractId = form.contract_id || null
         const internalEmail = `${username.toLowerCase().replace('-', '')}@guardium.bo`
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: internalEmail,
-          password: pin,
-        })
-        if (authError) throw authError
+        const { data: result, error: fnError } = await supabase.functions.invoke(
+          'create-guard-user',
+          { body: { email: internalEmail, password: pin } }
+        )
+        if (fnError || result?.error) {
+          throw new Error(fnError?.message || result?.error)
+        }
 
-        const userId = authData.user.id
+        const userId = result.user.id
         const { error: userError } = await supabase.from('users').insert({
           id: userId, full_name: form.full_name, role: 'guardia',
           contract_id: finalContractId, phone: form.phone,
