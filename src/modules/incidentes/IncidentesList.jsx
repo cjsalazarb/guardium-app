@@ -205,10 +205,12 @@ export default function IncidentesList() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 200 }}>
-          <option value="">Todos los contratos</option>
-          {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-        </select>
+        {!isAdminContrato && (
+          <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 200 }}>
+            <option value="">Todos los contratos</option>
+            {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+          </select>
+        )}
         <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} style={{ ...inputStyle, width: 160 }}>
           <option value="">Todas las severidades</option>
           <option value="bajo">Bajo</option>

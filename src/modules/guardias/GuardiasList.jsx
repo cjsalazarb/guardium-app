@@ -65,7 +65,7 @@ export default function GuardiasList() {
           <h1 style={{ fontFamily: T.FONT_DISPLAY, fontSize: 36, color: T.TEXT, margin: 0 }}>GUARDIAS</h1>
           <p style={{ fontFamily: T.FONT_BODY, color: T.TEXT_MUTED, margin: '4px 0 0' }}>Personal de seguridad</p>
         </div>
-        <button onClick={() => navigate('/guardias/nuevo')} style={{
+        <button onClick={() => navigate(isAdminContrato && routeContractId ? `/guardias/nuevo?contract=${routeContractId}` : '/guardias/nuevo')} style={{
           padding: '12px 24px', background: T.RED, color: T.WHITE, border: 'none',
           borderRadius: T.RADIUS_SM, cursor: 'pointer', fontFamily: T.FONT_DISPLAY, fontSize: 16,
         }}>

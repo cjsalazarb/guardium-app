@@ -126,10 +126,12 @@ export default function NovedadesList() {
         <input placeholder="Buscar en contenido..." value={searchText}
           onChange={e => setSearchText(e.target.value)}
           style={{ ...inputStyle, width: 280 }} />
-        <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 200 }}>
-          <option value="">Todos los contratos</option>
-          {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-        </select>
+        {!isAdminContrato && (
+          <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 200 }}>
+            <option value="">Todos los contratos</option>
+            {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+          </select>
+        )}
         <select value={filterGuard} onChange={e => setFilterGuard(e.target.value)} style={{ ...inputStyle, width: 200 }}>
           <option value="">Todos los guardias</option>
           {guards.map(g => <option key={g.id} value={g.full_name}>{g.full_name}</option>)}

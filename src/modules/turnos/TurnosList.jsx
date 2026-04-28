@@ -29,7 +29,7 @@ export default function TurnosList() {
   const [view, setView] = useState('calendar')
   const [filterContract, setFilterContract] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ guard_id: '', contract_id: '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
+  const [form, setForm] = useState({ guard_id: '', contract_id: (isAdminContrato && routeContractId) ? routeContractId : '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
 
@@ -136,10 +136,12 @@ export default function TurnosList() {
           <p style={{ fontFamily: T.FONT_BODY, color: T.TEXT_MUTED, margin: '4px 0 0' }}>Programacion semanal</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select style={{ ...inputStyle, width: 'auto' }} value={filterContract} onChange={e => setFilterContract(e.target.value)}>
-            <option value="">Todos los contratos</option>
-            {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-          </select>
+          {!isAdminContrato && (
+            <select style={{ ...inputStyle, width: 'auto' }} value={filterContract} onChange={e => setFilterContract(e.target.value)}>
+              <option value="">Todos los contratos</option>
+              {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+            </select>
+          )}
           <button onClick={() => setView(view === 'calendar' ? 'list' : 'calendar')} style={{
             padding: '8px 16px', background: T.BG, border: `1px solid ${T.BORDER}`, borderRadius: 6, cursor: 'pointer', fontFamily: T.FONT_BODY, fontSize: 13,
           }}>{view === 'calendar' ? 'Vista Lista' : 'Vista Calendario'}</button>
@@ -162,13 +164,15 @@ export default function TurnosList() {
         <div style={{ background: T.WHITE, borderRadius: T.CARD_RADIUS, boxShadow: T.SHADOW, padding: 24, marginBottom: 20, maxWidth: 500 }}>
           <h3 style={{ fontFamily: T.FONT_DISPLAY, margin: '0 0 16px', color: T.TEXT }}>NUEVO TURNO</h3>
           <form onSubmit={createShift}>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Contrato</label>
-              <select style={inputStyle} value={form.contract_id} onChange={e => setForm(f => ({ ...f, contract_id: e.target.value, guard_id: '' }))} required>
-                <option value="">Seleccionar</option>
-                {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-              </select>
-            </div>
+            {!isAdminContrato && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Contrato</label>
+                <select style={inputStyle} value={form.contract_id} onChange={e => setForm(f => ({ ...f, contract_id: e.target.value, guard_id: '' }))} required>
+                  <option value="">Seleccionar</option>
+                  {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+                </select>
+              </div>
+            )}
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Guardia</label>
               <select style={inputStyle} value={form.guard_id} onChange={e => setForm(f => ({ ...f, guard_id: e.target.value }))} required>

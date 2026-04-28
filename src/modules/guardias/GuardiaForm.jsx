@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import Layout from '../../components/Layout'
 import Toast from '../../components/Toast'
 import { supabase } from '../../lib/supabase'
@@ -12,6 +12,9 @@ function generarPIN() {
 export default function GuardiaForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const presetContractId = searchParams.get('contract') || ''
   const isEdit = Boolean(id)
   const [contracts, setContracts] = useState([])
   const [saving, setSaving] = useState(false)
@@ -23,7 +26,7 @@ export default function GuardiaForm() {
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
   const [form, setForm] = useState({
-    full_name: '', ci: '', phone: '', emergency_contact: '', contract_id: '',
+    full_name: '', ci: '', phone: '', emergency_contact: '', contract_id: presetContractId,
   })
 
   useEffect(() => {
@@ -182,13 +185,15 @@ export default function GuardiaForm() {
             <label style={labelStyle}>Contacto de emergencia</label>
             <input style={inputStyle} value={form.emergency_contact} onChange={e => handleChange('emergency_contact', e.target.value)} />
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Contrato asignado</label>
-            <select style={inputStyle} value={form.contract_id} onChange={e => handleChange('contract_id', e.target.value)}>
-              <option value="">Sin asignar</option>
-              {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-            </select>
-          </div>
+          {!presetContractId && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Contrato asignado</label>
+              <select style={inputStyle} value={form.contract_id} onChange={e => handleChange('contract_id', e.target.value)}>
+                <option value="">Sin asignar</option>
+                {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+              </select>
+            </div>
+          )}
           <div style={{ marginBottom: 24 }}>
             <label style={labelStyle}>Foto</label>
             <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} style={{ fontFamily: T.FONT_BODY }} />

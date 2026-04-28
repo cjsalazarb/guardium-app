@@ -53,7 +53,7 @@ export default function FacturacionList() {
 
   // Form
   const [form, setForm] = useState({
-    contract_id: '', amount: '', period_month: new Date().getMonth() + 1,
+    contract_id: effectiveContractId || '', amount: '', period_month: new Date().getMonth() + 1,
     period_year: new Date().getFullYear(), due_date: '', notes: '',
   })
 
@@ -182,20 +182,22 @@ export default function FacturacionList() {
           <h3 style={{ fontFamily: T.FONT_DISPLAY, color: T.TEXT, margin: '0 0 20px', fontSize: 20 }}>NUEVA FACTURA</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div>
-                <label style={labelStyle}>Contrato *</label>
-                <select
-                  value={form.contract_id}
-                  onChange={e => handleContractSelect(e.target.value)}
-                  style={inputStyle}
-                  required
-                >
-                  <option value="">Seleccionar contrato</option>
-                  {contracts.map(c => (
-                    <option key={c.id} value={c.id}>{c.client_name}</option>
-                  ))}
-                </select>
-              </div>
+              {!isAdminContrato ? (
+                <div>
+                  <label style={labelStyle}>Contrato *</label>
+                  <select
+                    value={form.contract_id}
+                    onChange={e => handleContractSelect(e.target.value)}
+                    style={inputStyle}
+                    required
+                  >
+                    <option value="">Seleccionar contrato</option>
+                    {contracts.map(c => (
+                      <option key={c.id} value={c.id}>{c.client_name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : <div />}
               <div>
                 <label style={labelStyle}>Monto (Bs.) *</label>
                 <input
@@ -249,10 +251,12 @@ export default function FacturacionList() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }}>
-          <option value="">Todos los contratos</option>
-          {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
-        </select>
+        {!isAdminContrato && (
+          <select value={filterContract} onChange={e => setFilterContract(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }}>
+            <option value="">Todos los contratos</option>
+            {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+          </select>
+        )}
         <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 140 }}>
           <option value="">Todos los meses</option>
           {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
