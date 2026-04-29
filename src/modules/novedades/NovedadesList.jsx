@@ -56,7 +56,7 @@ export default function NovedadesList() {
       content: form.content.trim(),
       guard_name: form.guard_name.trim() || null,
       shift: form.shift.trim() || null,
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
       created_at: new Date().toISOString(),
     }
     await supabase.from('log_entries').insert(payload)

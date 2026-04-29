@@ -115,7 +115,7 @@ export default function TurnosList() {
       if (dbErr) throw dbErr
 
       setShowForm(false)
-      setForm({ guard_id: '', contract_id: '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
+      setForm({ guard_id: '', contract_id: (isAdminContrato && routeContractId) ? routeContractId : '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
       loadData()
     } catch (err) {
       setError('Error al crear turnos: ' + err.message)

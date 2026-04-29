@@ -103,7 +103,7 @@ export default function FacturacionList() {
     })
     if (dbErr) { setError('Error al crear factura. Intente de nuevo.'); setSaving(false); return }
     setShowForm(false)
-    setForm({ contract_id: '', amount: '', period_month: new Date().getMonth() + 1, period_year: new Date().getFullYear(), due_date: '', notes: '' })
+    setForm({ contract_id: effectiveContractId || '', amount: '', period_month: new Date().getMonth() + 1, period_year: new Date().getFullYear(), due_date: '', notes: '' })
     loadInvoices()
     setSaving(false)
   }

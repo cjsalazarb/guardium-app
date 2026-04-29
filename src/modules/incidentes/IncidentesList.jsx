@@ -70,7 +70,7 @@ export default function IncidentesList() {
       guard_name: form.guard_name.trim() || null,
       location: form.location.trim() || null,
       status: 'abierto',
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
       created_at: new Date().toISOString(),
     }
     const { error: dbErr } = await supabase.from('incidents').insert(payload)

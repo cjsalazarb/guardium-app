@@ -41,7 +41,7 @@ export default function PaquetesList() {
       description: form.description.trim() || null,
       received_at: new Date().toISOString(),
       status: 'recibido',
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
     }
     await supabase.from('packages').insert(payload)
     setForm({ recipient_name: '', sender: '', description: '' })

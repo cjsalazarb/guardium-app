@@ -51,7 +51,7 @@ export default function VisitantesList() {
       reason: form.reason.trim() || null,
       host_name: form.host_name.trim() || null,
       entry_time: new Date().toISOString(),
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
     }
     await supabase.from('visitors').insert(payload)
     setForm({ full_name: '', ci: '', reason: '', host_name: '' })

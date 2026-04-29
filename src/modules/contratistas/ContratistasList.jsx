@@ -50,7 +50,7 @@ export default function ContratistasList() {
       permit_type: form.permit_type,
       permit_valid_until: form.permit_valid_until || null,
       entry_time: new Date().toISOString(),
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
     }
     await supabase.from('contractors').insert(payload)
     setForm({ full_name: '', company: '', ci: '', permit_type: 'obra', permit_valid_until: '' })

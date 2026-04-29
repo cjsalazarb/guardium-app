@@ -38,7 +38,7 @@ export default function VehiculosList() {
       owner_name: form.owner_name.trim() || null,
       notes: form.notes.trim() || null,
       entry_time: new Date().toISOString(),
-      contract_id: contractId || null,
+      contract_id: effectiveContractId || contractId || null,
     }
     await supabase.from('vehicles').insert(payload)
     setForm({ plate: '', type: 'sedan', brand: '', owner_name: '', notes: '' })
