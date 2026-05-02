@@ -32,11 +32,12 @@ export default function IncidentesList() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [error, setError] = useState(null)
+  const [guards, setGuards] = useState([])
   const [form, setForm] = useState({
-    title: '', description: '', severity: 'medio', guard_name: '', location: '',
+    title: '', description: '', severity: 'medio', guard_id: '',
   })
 
-  useEffect(() => { loadIncidents(); loadContracts() }, [filterContract, filterSeverity, filterStatus, filterDate, effectiveContractId])
+  useEffect(() => { loadIncidents(); loadContracts(); loadGuards() }, [filterContract, filterSeverity, filterStatus, filterDate, effectiveContractId])
 
   async function loadContracts() {
     const { data, error: dbErr } = await supabase.from('contracts').select('id, client_name').order('client_name')
@@ -44,8 +45,15 @@ export default function IncidentesList() {
     setContracts(data || [])
   }
 
+  async function loadGuards() {
+    let q = supabase.from('guards').select('id, full_name').eq('active', true).order('full_name')
+    if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
+    const { data } = await q
+    setGuards(data || [])
+  }
+
   async function loadIncidents() {
-    let q = supabase.from('incidents').select('*, contract:contracts(client_name)').order('created_at', { ascending: false })
+    let q = supabase.from('incident_reports').select('*, guard:guards(full_name), contract:contracts(client_name)').order('created_at', { ascending: false })
     if (effectiveContractId) q = q.eq('contract_id', effectiveContractId)
     else if (filterContract) q = q.eq('contract_id', filterContract)
     if (filterSeverity) q = q.eq('severity', filterSeverity)
@@ -55,7 +63,7 @@ export default function IncidentesList() {
       q = q.lte('created_at', filterDate + 'T23:59:59')
     }
     const { data, error: dbErr } = await q
-    if (dbErr) { setError('Error al cargar incidentes. Intente de nuevo.'); setLoading(false); return }
+    if (dbErr) { console.error('Supabase incidents error:', dbErr); setError('Error al cargar incidentes. Intente de nuevo.'); setLoading(false); return }
     setIncidents(data || [])
     setLoading(false)
   }
@@ -67,15 +75,13 @@ export default function IncidentesList() {
       title: form.title.trim(),
       description: form.description.trim() || null,
       severity: form.severity,
-      guard_name: form.guard_name.trim() || null,
-      location: form.location.trim() || null,
+      guard_id: form.guard_id || null,
       status: 'abierto',
       contract_id: effectiveContractId || contractId || null,
-      created_at: new Date().toISOString(),
     }
-    const { error: dbErr } = await supabase.from('incidents').insert(payload)
+    const { error: dbErr } = await supabase.from('incident_reports').insert(payload)
     if (dbErr) { setError('Error al registrar incidente. Intente de nuevo.'); return }
-    setForm({ title: '', description: '', severity: 'medio', guard_name: '', location: '' })
+    setForm({ title: '', description: '', severity: 'medio', guard_id: '' })
     setShowForm(false)
     loadIncidents()
   }
@@ -84,8 +90,7 @@ export default function IncidentesList() {
     const next = STATUS_FLOW[incident.status]
     if (!next) return
     const updates = { status: next }
-    if (next === 'cerrado') updates.closed_at = new Date().toISOString()
-    const { error: dbErr } = await supabase.from('incidents').update(updates).eq('id', incident.id)
+    const { error: dbErr } = await supabase.from('incident_reports').update(updates).eq('id', incident.id)
     if (dbErr) { setError('Error al cambiar estado. Intente de nuevo.'); return }
     loadIncidents()
   }
@@ -138,11 +143,10 @@ export default function IncidentesList() {
             </div>
             <div>
               <label style={labelStyle}>Guardia reportante</label>
-              <input style={inputStyle} value={form.guard_name} onChange={e => setForm({ ...form, guard_name: e.target.value })} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Ubicacion</label>
-              <input style={inputStyle} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
+              <select style={inputStyle} value={form.guard_id} onChange={e => setForm({ ...form, guard_id: e.target.value })}>
+                <option value="">— Seleccionar guardia —</option>
+                {guards.map(g => <option key={g.id} value={g.id}>{g.full_name}</option>)}
+              </select>
             </div>
             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
               <button type="submit" style={{
@@ -189,8 +193,7 @@ export default function IncidentesList() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY, marginBottom: 20 }}>
               <div><strong>Contrato:</strong> {selected.contract?.client_name || '-'}</div>
-              <div><strong>Guardia:</strong> {selected.guard_name || '-'}</div>
-              <div><strong>Ubicacion:</strong> {selected.location || '-'}</div>
+              <div><strong>Guardia:</strong> {selected.guard?.full_name || '-'}</div>
               <div><strong>Fecha:</strong> {fmtDate(selected.created_at)}</div>
             </div>
             {STATUS_FLOW[selected.status] && (
@@ -234,7 +237,7 @@ export default function IncidentesList() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.FONT_BODY, fontSize: 14 }}>
             <thead>
               <tr style={{ background: T.BG, borderBottom: `2px solid ${T.BORDER}` }}>
-                {['Titulo', 'Contrato', 'Guardia', 'Severidad', 'Estado', 'Fecha'].map(h => (
+                {['Titulo', 'Contrato', 'Guardia', 'Severidad', 'Estado', 'Fecha'].map((h) => (
                   <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: T.TEXT, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
                 ))}
               </tr>
@@ -251,7 +254,7 @@ export default function IncidentesList() {
                     onMouseLeave={e => e.currentTarget.style.background = T.WHITE}>
                     <td style={{ padding: '12px 16px', fontWeight: 600 }}>{i.title}</td>
                     <td style={{ padding: '12px 16px', color: T.TEXT_MUTED }}>{i.contract?.client_name || '-'}</td>
-                    <td style={{ padding: '12px 16px', color: T.TEXT_MUTED }}>{i.guard_name || '-'}</td>
+                    <td style={{ padding: '12px 16px', color: T.TEXT_MUTED }}>{i.guard?.full_name || '-'}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
                         padding: '4px 12px', borderRadius: 12, fontSize: 11, fontWeight: 700,
