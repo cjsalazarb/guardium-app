@@ -22,7 +22,6 @@ const menuItems = [
 
 const bottomItems = [
   { icon: '🔔', label: 'Notificaciones', action: 'notifications' },
-  { icon: '⚙️', label: 'Configuración',  path: '/configuracion' },
   { icon: '🚪', label: 'Salir',          action: 'signout' },
 ]
 
