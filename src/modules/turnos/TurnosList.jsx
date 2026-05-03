@@ -131,8 +131,10 @@ export default function TurnosList() {
 
   function openEdit(shift) {
     const startDate = shift.start_time.split('T')[0]
-    const startHour = new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-    const endHour = new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    const sd = new Date(shift.start_time)
+    const ed = new Date(shift.end_time)
+    const startHour = String(sd.getHours()).padStart(2, '0') + ':' + String(sd.getMinutes()).padStart(2, '0')
+    const endHour = String(ed.getHours()).padStart(2, '0') + ':' + String(ed.getMinutes()).padStart(2, '0')
     setEditForm({ guard_id: shift.guard_id, contract_id: shift.contract_id, date: startDate, start_hour: startHour, end_hour: endHour })
     setEditShift(shift)
     setConfirmDelete(false)
@@ -149,19 +151,21 @@ export default function TurnosList() {
         next.setDate(next.getDate() + 1)
         endDate = next.toISOString().split('T')[0]
       }
-      const { error: dbErr } = await supabase.from('shifts').update({
+      const payload = {
         guard_id, contract_id,
         start_time: `${date}T${start_hour}:00`,
         end_time: `${endDate}T${end_hour}:00`,
-      }).eq('id', editShift.id)
+      }
+      const { data, error: dbErr } = await supabase.from('shifts').update(payload).eq('id', editShift.id).select()
       if (dbErr) throw dbErr
+      if (!data || data.length === 0) throw new Error('No se pudo actualizar — verifique permisos RLS')
       setEditShift(null)
       setSuccessMsg('Turno actualizado correctamente')
       setTimeout(() => setSuccessMsg(null), 3500)
-      loadData()
+      await loadData()
     } catch (err) {
       console.error('Error updating shift:', err)
-      setError('Error al actualizar turno')
+      setError('Error al actualizar turno: ' + err.message)
     }
     setSavingEdit(false)
   }
@@ -174,10 +178,10 @@ export default function TurnosList() {
       setEditShift(null)
       setSuccessMsg('Turno eliminado')
       setTimeout(() => setSuccessMsg(null), 3500)
-      loadData()
+      await loadData()
     } catch (err) {
       console.error('Error deleting shift:', err)
-      setError('Error al eliminar turno')
+      setError('Error al eliminar turno: ' + err.message)
     }
     setSavingEdit(false)
   }
