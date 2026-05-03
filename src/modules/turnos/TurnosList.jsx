@@ -32,6 +32,11 @@ export default function TurnosList() {
   const [form, setForm] = useState({ guard_id: '', contract_id: (isAdminContrato && routeContractId) ? routeContractId : '', start_date: '', end_date: '', start_hour: '06:00', end_hour: '18:00' })
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [editShift, setEditShift] = useState(null)
+  const [editForm, setEditForm] = useState({ guard_id: '', contract_id: '', date: '', start_hour: '', end_hour: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [successMsg, setSuccessMsg] = useState(null)
 
   const days = getWeekDays(weekOffset)
   const weekStart = days[0].toISOString()
@@ -122,6 +127,59 @@ export default function TurnosList() {
     } finally {
       setCreating(false)
     }
+  }
+
+  function openEdit(shift) {
+    const startDate = shift.start_time.split('T')[0]
+    const startHour = new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    const endHour = new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    setEditForm({ guard_id: shift.guard_id, contract_id: shift.contract_id, date: startDate, start_hour: startHour, end_hour: endHour })
+    setEditShift(shift)
+    setConfirmDelete(false)
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault()
+    setSavingEdit(true)
+    try {
+      const { date, start_hour, end_hour, guard_id, contract_id } = editForm
+      let endDate = date
+      if (end_hour <= start_hour) {
+        const next = new Date(date + 'T00:00:00')
+        next.setDate(next.getDate() + 1)
+        endDate = next.toISOString().split('T')[0]
+      }
+      const { error: dbErr } = await supabase.from('shifts').update({
+        guard_id, contract_id,
+        start_time: `${date}T${start_hour}:00`,
+        end_time: `${endDate}T${end_hour}:00`,
+      }).eq('id', editShift.id)
+      if (dbErr) throw dbErr
+      setEditShift(null)
+      setSuccessMsg('Turno actualizado correctamente')
+      setTimeout(() => setSuccessMsg(null), 3500)
+      loadData()
+    } catch (err) {
+      console.error('Error updating shift:', err)
+      setError('Error al actualizar turno')
+    }
+    setSavingEdit(false)
+  }
+
+  async function deleteShift() {
+    setSavingEdit(true)
+    try {
+      const { error: dbErr } = await supabase.from('shifts').delete().eq('id', editShift.id)
+      if (dbErr) throw dbErr
+      setEditShift(null)
+      setSuccessMsg('Turno eliminado')
+      setTimeout(() => setSuccessMsg(null), 3500)
+      loadData()
+    } catch (err) {
+      console.error('Error deleting shift:', err)
+      setError('Error al eliminar turno')
+    }
+    setSavingEdit(false)
   }
 
   const inputStyle = { width: '100%', padding: '8px 12px', border: `1px solid ${T.BORDER}`, borderRadius: 6, fontSize: 14, fontFamily: T.FONT_BODY, boxSizing: 'border-box' }
@@ -238,9 +296,10 @@ export default function TurnosList() {
               return (
                 <div key={dayStr} style={{ padding: 6, borderRight: `1px solid ${T.BORDER}`, minHeight: 100 }}>
                   {dayShifts.map(s => (
-                    <div key={s.id} style={{
+                    <div key={s.id} onClick={() => openEdit(s)} style={{
                       padding: '4px 6px', marginBottom: 4, borderRadius: 4, fontSize: 11, fontFamily: T.FONT_BODY,
                       background: statusColors[s.status] + '20', borderLeft: `3px solid ${statusColors[s.status]}`,
+                      cursor: 'pointer',
                     }}>
                       <div style={{ fontWeight: 600 }}>{s.guard?.full_name || '—'}</div>
                       <div style={{ color: T.TEXT_MUTED }}>
@@ -258,7 +317,7 @@ export default function TurnosList() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.FONT_BODY, fontSize: 14 }}>
             <thead>
               <tr style={{ background: T.BG }}>
-                {['Guardia', 'Fecha', 'Inicio', 'Fin', 'Estado'].map(h => (
+                {['Guardia', 'Fecha', 'Inicio', 'Fin', 'Estado', ''].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, color: T.TEXT_MUTED }}>{h}</th>
                 ))}
               </tr>
@@ -273,13 +332,90 @@ export default function TurnosList() {
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, color: statusColors[s.status], background: statusColors[s.status] + '18' }}>{s.status}</span>
                   </td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <button onClick={() => openEdit(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '4px 8px' }} title="Editar turno">✏️</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {editShift && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setEditShift(null)}>
+          <div style={{ background: 'white', borderRadius: T.RADIUS, padding: 32, maxWidth: 440, width: '90%', boxShadow: T.SHADOW_LG, borderTop: `4px solid ${T.RED}` }}
+            onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontFamily: T.FONT_DISPLAY, margin: '0 0 20px', color: T.TEXT, fontSize: 22 }}>EDITAR TURNO</h3>
+            <form onSubmit={saveEdit}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Contrato</label>
+                <select style={inputStyle} value={editForm.contract_id} onChange={e => setEditForm(f => ({ ...f, contract_id: e.target.value, guard_id: '' }))} required>
+                  <option value="">Seleccionar</option>
+                  {contracts.map(c => <option key={c.id} value={c.id}>{c.client_name}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Guardia</label>
+                <select style={inputStyle} value={editForm.guard_id} onChange={e => setEditForm(f => ({ ...f, guard_id: e.target.value }))} required>
+                  <option value="">Seleccionar</option>
+                  {(editForm.contract_id ? guards.filter(g => g.contract_id === editForm.contract_id) : guards).map(g => (
+                    <option key={g.id} value={g.id}>{g.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Fecha</label>
+                <input type="date" style={inputStyle} value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} required />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Hora inicio</label>
+                  <input type="time" style={inputStyle} value={editForm.start_hour} onChange={e => setEditForm(f => ({ ...f, start_hour: e.target.value }))} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: T.TEXT_MUTED, fontFamily: T.FONT_BODY }}>Hora fin</label>
+                  <input type="time" style={inputStyle} value={editForm.end_hour} onChange={e => setEditForm(f => ({ ...f, end_hour: e.target.value }))} required />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="submit" disabled={savingEdit} style={{
+                  padding: '10px 20px', background: T.RED, color: T.WHITE, border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: T.FONT_DISPLAY, fontSize: 14,
+                }}>{savingEdit ? 'Guardando...' : 'Guardar cambios'}</button>
+                {!confirmDelete ? (
+                  <button type="button" onClick={() => setConfirmDelete(true)} style={{
+                    padding: '10px 20px', background: 'transparent', color: T.RED, border: `1.5px solid ${T.RED}`, borderRadius: 6, cursor: 'pointer', fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13,
+                  }}>Eliminar turno</button>
+                ) : (
+                  <button type="button" onClick={deleteShift} disabled={savingEdit} style={{
+                    padding: '10px 20px', background: T.RED, color: T.WHITE, border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13,
+                  }}>Confirmar eliminar</button>
+                )}
+                <button type="button" onClick={() => setEditShift(null)} style={{
+                  background: 'none', border: 'none', color: T.TEXT_MUTED, cursor: 'pointer', fontFamily: T.FONT_BODY, fontSize: 13, textDecoration: 'underline',
+                }}>Cancelar</button>
+              </div>
+              {confirmDelete && (
+                <div style={{ marginTop: 8, fontSize: 12, color: T.RED, fontFamily: T.FONT_BODY }}>
+                  ¿Estas seguro de eliminar este turno?
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
       <Toast message={error} onClose={() => setError(null)} />
+      {successMsg && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, background: '#2E7D32', color: T.WHITE,
+          padding: '12px 20px', borderRadius: T.RADIUS_SM, fontFamily: T.FONT_BODY, fontWeight: 700,
+          boxShadow: T.SHADOW_LG, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 12, maxWidth: 420, fontSize: 14,
+        }}>
+          <span>{successMsg}</span>
+          <span onClick={() => setSuccessMsg(null)} style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</span>
+        </div>
+      )}
     </Layout>
   )
 }
