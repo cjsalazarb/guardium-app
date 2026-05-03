@@ -25,6 +25,12 @@ export default function GuardiaForm() {
   const [username, setUsername] = useState('')
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
+  const [showChangePin, setShowChangePin] = useState(false)
+  const [newPin, setNewPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [savingPin, setSavingPin] = useState(false)
+  const [successMsg, setSuccessMsg] = useState(null)
   const [form, setForm] = useState({
     full_name: '', ci: '', phone: '', emergency_contact: '', contract_id: presetContractId,
   })
@@ -48,6 +54,32 @@ export default function GuardiaForm() {
   }, [id, isEdit])
 
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+
+  async function handleChangePin() {
+    setPinError('')
+    if (newPin.length < 4) {
+      setPinError('El PIN debe tener al menos 4 caracteres')
+      return
+    }
+    if (newPin !== confirmPin) {
+      setPinError('Las contrasenas no coinciden')
+      return
+    }
+    setSavingPin(true)
+    try {
+      const { error: dbError } = await supabase.from('guards').update({ pin_code: newPin }).eq('id', id)
+      if (dbError) throw dbError
+      setShowChangePin(false)
+      setNewPin('')
+      setConfirmPin('')
+      setSuccessMsg('PIN actualizado correctamente')
+      setTimeout(() => setSuccessMsg(null), 3500)
+    } catch (err) {
+      console.error('Error updating PIN:', err)
+      setError('Error al actualizar PIN')
+    }
+    setSavingPin(false)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -198,6 +230,36 @@ export default function GuardiaForm() {
             <label style={labelStyle}>Foto</label>
             <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} style={{ fontFamily: T.FONT_BODY }} />
           </div>
+          {isEdit && (
+            <div style={{ marginBottom: 24, padding: 20, background: T.BG, borderRadius: T.RADIUS_SM, border: `1px solid ${T.BORDER}` }}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>PIN actual</label>
+                <input readOnly value="••••••" style={{ ...inputStyle, background: T.BG, color: T.TEXT_MUTED, letterSpacing: '0.3em', fontFamily: 'monospace', fontSize: 18 }} />
+              </div>
+              <button type="button" onClick={() => { setShowChangePin(!showChangePin); setPinError('') }}
+                style={{ padding: '8px 20px', borderRadius: T.RADIUS_SM, border: `1.5px solid ${T.BORDER}`, background: T.WHITE, fontFamily: T.FONT_BODY, fontWeight: 700, fontSize: 13, cursor: 'pointer', color: T.TEXT }}>
+                {showChangePin ? 'Cancelar' : 'Cambiar PIN'}
+              </button>
+              {showChangePin && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>Nueva contrasena</label>
+                    <input type="password" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Min. 4 digitos" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '0.2em' }} />
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>Confirmar contrasena</label>
+                    <input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Repetir PIN" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '0.2em' }} />
+                  </div>
+                  {pinError && <div style={{ color: T.RED, fontSize: 13, fontWeight: 600, marginBottom: 12, fontFamily: T.FONT_BODY }}>{pinError}</div>}
+                  <button type="button" onClick={handleChangePin} disabled={savingPin}
+                    style={{ padding: '10px 24px', borderRadius: T.RADIUS_SM, border: `1.5px solid ${T.BORDER}`, background: T.WHITE, fontFamily: T.FONT_DISPLAY, fontSize: 14, cursor: 'pointer', color: T.TEXT }}>
+                    {savingPin ? 'Actualizando...' : 'Actualizar PIN'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 12 }}>
             <button type="submit" disabled={saving} style={{
               padding: '12px 32px', background: T.RED, color: T.WHITE, border: 'none',
@@ -212,6 +274,20 @@ export default function GuardiaForm() {
         </form>
       </div>
       <Toast message={error} onClose={() => setError(null)} />
+      {successMsg && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24,
+          background: '#2E7D32', color: T.WHITE,
+          padding: '12px 20px', borderRadius: T.RADIUS_SM,
+          fontFamily: T.FONT_BODY, fontWeight: 700,
+          boxShadow: T.SHADOW_LG, zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: 12,
+          maxWidth: 420, fontSize: 14,
+        }}>
+          <span>{successMsg}</span>
+          <span onClick={() => setSuccessMsg(null)} style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</span>
+        </div>
+      )}
 
       {/* Modal de credenciales post-creación */}
       {credenciales && (
