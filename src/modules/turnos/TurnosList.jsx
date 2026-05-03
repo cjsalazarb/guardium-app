@@ -7,6 +7,10 @@ import { T } from '../../styles/tokens'
 
 const statusColors = { programado: T.MUTED, activo: T.SUCCESS, completado: T.INFO, ausente: T.WARN }
 
+function localDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
 function getWeekDays(offset = 0) {
   const now = new Date()
   const start = new Date(now)
@@ -39,8 +43,8 @@ export default function TurnosList() {
   const [successMsg, setSuccessMsg] = useState(null)
 
   const days = getWeekDays(weekOffset)
-  const weekStart = days[0].toISOString()
-  const weekEnd = new Date(days[6].getTime() + 24 * 60 * 60 * 1000).toISOString()
+  const weekStart = localDateStr(days[0]) + 'T00:00:00'
+  const weekEnd = localDateStr(days[6]) + 'T23:59:59'
 
   useEffect(() => { loadData() }, [weekOffset, filterContract, routeContractId])
 
@@ -93,12 +97,12 @@ export default function TurnosList() {
       const end = new Date(end_date + 'T00:00:00')
 
       while (current <= end) {
-        const dayStr = current.toISOString().split('T')[0]
+        const dayStr = localDateStr(current)
         if (isNocturnal) {
           // Turno nocturno: end_time es al día siguiente
           const nextDay = new Date(current)
           nextDay.setDate(nextDay.getDate() + 1)
-          const nextDayStr = nextDay.toISOString().split('T')[0]
+          const nextDayStr = localDateStr(nextDay)
           turnos.push({
             guard_id, contract_id,
             start_time: `${dayStr}T${start_hour}:00`,
@@ -130,11 +134,9 @@ export default function TurnosList() {
   }
 
   function openEdit(shift) {
-    const startDate = shift.start_time.split('T')[0]
-    const sd = new Date(shift.start_time)
-    const ed = new Date(shift.end_time)
-    const startHour = String(sd.getHours()).padStart(2, '0') + ':' + String(sd.getMinutes()).padStart(2, '0')
-    const endHour = String(ed.getHours()).padStart(2, '0') + ':' + String(ed.getMinutes()).padStart(2, '0')
+    const startDate = shift.start_time.slice(0, 10)
+    const startHour = shift.start_time.slice(11, 16)
+    const endHour = shift.end_time.slice(11, 16)
     setEditForm({ guard_id: shift.guard_id, contract_id: shift.contract_id, date: startDate, start_hour: startHour, end_hour: endHour })
     setEditShift(shift)
     setConfirmDelete(false)
@@ -147,9 +149,9 @@ export default function TurnosList() {
       const { date, start_hour, end_hour, guard_id, contract_id } = editForm
       let endDate = date
       if (end_hour <= start_hour) {
-        const next = new Date(date + 'T00:00:00')
+        const next = new Date(date + 'T12:00:00')
         next.setDate(next.getDate() + 1)
-        endDate = next.toISOString().split('T')[0]
+        endDate = localDateStr(next)
       }
       const payload = {
         guard_id, contract_id,
@@ -295,8 +297,8 @@ export default function TurnosList() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minHeight: 120 }}>
             {days.map(d => {
-              const dayStr = d.toISOString().split('T')[0]
-              const dayShifts = shifts.filter(s => s.start_time?.startsWith(dayStr))
+              const dayStr = localDateStr(d)
+              const dayShifts = shifts.filter(s => s.start_time?.slice(0, 10) === dayStr)
               return (
                 <div key={dayStr} style={{ padding: 6, borderRight: `1px solid ${T.BORDER}`, minHeight: 100 }}>
                   {dayShifts.map(s => (
@@ -307,7 +309,7 @@ export default function TurnosList() {
                     }}>
                       <div style={{ fontWeight: 600 }}>{s.guard?.full_name || '—'}</div>
                       <div style={{ color: T.TEXT_MUTED }}>
-                        {new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {s.start_time.slice(11, 16)} - {s.end_time.slice(11, 16)}
                       </div>
                     </div>
                   ))}
@@ -330,9 +332,9 @@ export default function TurnosList() {
               {shifts.map(s => (
                 <tr key={s.id} style={{ borderBottom: `1px solid ${T.BORDER}` }}>
                   <td style={{ padding: '10px 16px', fontWeight: 600 }}>{s.guard?.full_name || '—'}</td>
-                  <td style={{ padding: '10px 16px' }}>{new Date(s.start_time).toLocaleDateString()}</td>
-                  <td style={{ padding: '10px 16px' }}>{new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                  <td style={{ padding: '10px 16px' }}>{new Date(s.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td style={{ padding: '10px 16px' }}>{s.start_time.slice(0, 10)}</td>
+                  <td style={{ padding: '10px 16px' }}>{s.start_time.slice(11, 16)}</td>
+                  <td style={{ padding: '10px 16px' }}>{s.end_time.slice(11, 16)}</td>
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{ padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600, color: statusColors[s.status], background: statusColors[s.status] + '18' }}>{s.status}</span>
                   </td>
